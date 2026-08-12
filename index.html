@@ -1,0 +1,841 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Opening-Adjacent Flat Slab Punching Resistance</title>
+<style>
+:root{
+  --ink:#17202a;--muted:#5b6672;--paper:#eeece7;--card:#fff;--line:#dcd8d0;
+  --blue:#1f4e79;--red:#c00000;--green:#2e7d32;--purple:#7b1fa2;--amber:#e65100;--teal:#00695c;--brown:#5d4037;
+  --rule:1px solid var(--line);--serif:"Times New Roman",Times,Georgia,serif;
+  /* A18c: sayisal degerler icin tabular-nums'lu sans stack — sutunlar hizalanir,
+     basliklarin serif'inden ayrisir ve "yazilim urunu" izlenimini kuran sey budur. */
+  --num:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --r:10px;--r-sm:7px;
+  --sh:0 1px 2px rgba(23,32,42,.06),0 4px 14px rgba(23,32,42,.05);
+  --sh-lift:0 2px 4px rgba(23,32,42,.07),0 10px 28px rgba(23,32,42,.08);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:17px;line-height:1.5}
+.wrap{max-width:1240px;margin:auto;padding:0 20px 56px}
+h1,h2,h3{font-family:var(--serif);font-weight:700;margin:0}
+
+/* ---- baslik seridi (A18c-7): ad, surum, model kunyesi tek satirda ---- */
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 18px;
+  margin:0 -20px 22px;padding:9px 26px;background:var(--blue);color:#fff;
+  font-family:var(--num);font-size:.78rem;letter-spacing:.02em}
+.topbar .nm{font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.topbar .vr{border:1px solid rgba(255,255,255,.45);border-radius:999px;padding:1px 8px;font-size:.7rem}
+.topbar .id{margin-left:auto;opacity:.86;font-variant-numeric:tabular-nums}
+.topbar .id b{font-weight:600}
+
+.mast{padding-bottom:16px;margin-bottom:22px}
+.mast h1{font-size:clamp(1.45rem,3.2vw,2.05rem);line-height:1.15;letter-spacing:-.01em}
+.mast .sub{color:var(--muted);margin:9px 0 0;max-width:78ch;font-size:.97rem}
+.notice{margin-top:15px;padding:12px 15px;border-radius:var(--r-sm);
+  border:1px solid #e6cfcf;border-left:4px solid var(--red);background:#fdf7f5;font-size:.92rem}
+.notice b{display:block;margin-bottom:2px}
+
+.layout{display:grid;grid-template-columns:minmax(280px,330px) minmax(0,1fr);gap:20px;align-items:start}
+@media(min-width:1180px){
+ .layout>section.resultcol{display:contents}
+ .layout{grid-template-columns:326px minmax(0,1fr) minmax(0,1fr);grid-template-areas:"inp res res" "inp chain warn" "chart chart chart";column-gap:20px;row-gap:20px;align-items:start}
+ .layout>aside{grid-area:inp;position:sticky;top:12px}
+ #results{display:contents}
+ #r-hero{grid-area:res}#r-chain{grid-area:chain}#r-warn{grid-area:warn}#r-chart{grid-area:chart}
+ #r-chain .body,#r-warn .body{max-height:436px;overflow:auto}
+}
+
+/* ---- kartlar (A18c-2) ---- */
+.region{background:var(--card);border:var(--rule);border-radius:var(--r);box-shadow:var(--sh);
+  margin-bottom:20px;overflow:hidden}
+.region>h2{font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;padding:10px 16px;
+  border-bottom:var(--rule);background:#fafaf8;color:var(--muted);font-family:var(--num);font-weight:600}
+.region>.body{padding:16px}
+/* girdi paneli gorsel olarak GERI CEKILIR (A18c-1) */
+#form{background:#fbfaf8;box-shadow:0 1px 2px rgba(23,32,42,.05)}
+#form>h2{background:transparent}
+
+.field-group{font-family:var(--num);font-size:.66rem;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--blue);margin:18px 0 9px;padding-bottom:5px;border-bottom:1px solid #e8e5df;font-weight:600}
+.field-group:first-child{margin-top:0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:11px 12px}
+.wide{grid-column:1/-1}
+label{display:block;font-size:.78rem;color:#4a5560;margin-bottom:4px;line-height:1.3}
+/* ---- girdi alani: etiket ustte, birim alan icinde sagda gri (A18c-4) ---- */
+.inp{position:relative;display:block}
+.inp>.u{position:absolute;right:9px;top:50%;transform:translateY(-50%);
+  font-family:var(--num);font-size:.72rem;color:#9aa1a8;pointer-events:none;font-style:normal}
+.inp>input{padding-right:40px}
+input,select{width:100%;padding:8px 9px;border:1px solid #d3cfc7;border-radius:var(--r-sm);
+  background:#fff;color:var(--ink);font-family:var(--num);font-size:.92rem;
+  font-variant-numeric:tabular-nums;transition:border-color .12s,box-shadow .12s}
+input:hover,select:hover{border-color:#b9b3a8}
+input:focus,select:focus{outline:0;border-color:var(--blue);box-shadow:0 0 0 3px rgba(31,78,121,.14)}
+.check{display:flex;gap:8px;align-items:center;margin-top:18px}
+.check input{width:auto}
+.check label{margin:0;font-size:.85rem}
+button{width:100%;border:0;border-radius:var(--r-sm);background:var(--blue);color:#fff;
+  font-family:var(--num);font-size:.92rem;font-weight:600;padding:12px;margin-top:18px;cursor:pointer;
+  letter-spacing:.06em;text-transform:uppercase;box-shadow:0 2px 8px rgba(31,78,121,.28);transition:background .12s,transform .06s}
+button:hover{background:#17405f}
+button:active{transform:translateY(1px)}
+
+/* ---- sonuc kartlari (A18c-1): V_d en belirgin oge ---- */
+#r-hero{border-color:#c9d6e2;box-shadow:var(--sh-lift)}
+#r-hero>h2{background:#f2f6fa;color:var(--blue)}
+.hero{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:0;border-bottom:var(--rule)}
+.metric{padding:15px 17px;border-right:1px solid #eceae4}
+.metric:last-child{border-right:0}
+.metric .label{font-family:var(--num);font-size:.65rem;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.metric .value{font-family:var(--num);font-size:1.5rem;font-weight:600;margin:6px 0 4px;
+  font-variant-numeric:tabular-nums;letter-spacing:-.015em;color:#39424c}
+.metric .note{font-size:.76rem;color:var(--muted);line-height:1.35}
+.metric.primary{background:linear-gradient(180deg,#f4f8fc 0%,#eef4fa 100%)}
+.metric.primary .label{color:var(--blue)}
+.metric.primary .value{font-size:2.9rem;color:var(--blue);font-weight:700;line-height:1.05;margin:4px 0 5px}
+.gamma-line{padding:10px 17px;font-family:var(--num);font-size:.75rem;color:var(--muted);
+  border-bottom:var(--rule);background:#fbfaf8;font-variant-numeric:tabular-nums}
+
+/* ---- hesap zinciri: tablo degil AKIS (A18c-3) ---- */
+#r-chain .body{padding:0}
+.chain{width:100%;border-collapse:collapse;font-size:.9rem}
+.chain thead th{font-family:var(--num);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;
+  color:#9aa1a8;text-align:left;padding:9px 16px 7px;border-bottom:var(--rule);font-weight:600}
+.chain td{padding:7px 16px;border:0;vertical-align:middle}
+.chain tbody tr+tr:not(.tier) td{box-shadow:inset 0 1px 0 #f2f0ea}
+.chain .sym{width:23%;white-space:nowrap}
+.chain .desc{color:var(--muted);font-size:.83rem;line-height:1.35}
+.chain .val{text-align:right;font-family:var(--num);font-variant-numeric:tabular-nums;
+  white-space:nowrap;width:23%;font-size:.93rem;color:#39424c}
+.chain tr.tier td{font-family:var(--num);font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--blue);font-weight:600;padding:14px 16px 5px;background:transparent;
+  box-shadow:inset 0 1px 0 #e3e0d8}
+.chain tbody tr.tier:first-child td{box-shadow:none;padding-top:11px}
+.chain tr.out td{background:#f2f6fa;font-weight:700;box-shadow:inset 0 1px 0 #c9d6e2,inset 0 -1px 0 #c9d6e2}
+.chain tr.out .val{color:var(--blue);font-size:1.02rem}
+math{font-size:1.02em}
+
+/* ---- uyari kartlari (A18c-5) ---- */
+.warn{display:grid;grid-template-columns:24px 1fr;gap:11px;padding:12px 14px;
+  border:1px solid #e7e4dd;border-left-width:4px;border-radius:var(--r-sm);
+  margin-bottom:10px;background:#fff;box-shadow:0 1px 2px rgba(23,32,42,.05)}
+.warn .ico{font-size:1.02rem;line-height:1.3;text-align:center}
+.warn .tag{display:inline-block;font-family:var(--num);font-size:.58rem;letter-spacing:.13em;
+  text-transform:uppercase;border:1px solid currentColor;border-radius:999px;padding:1px 7px;
+  margin-bottom:5px;font-weight:600}
+.warn .ttl{font-weight:700;display:block;margin-bottom:3px;font-size:.95rem}
+.warn .msg{font-size:.86rem;color:#4a5560;line-height:1.45}
+.warn.scope{border-left-color:var(--red)} .warn.scope .tag,.warn.scope .ico{color:var(--red)}
+.warn.caution{border-left-color:var(--amber)} .warn.caution .tag,.warn.caution .ico{color:var(--amber)}
+.warn.info{border-left-color:var(--blue)} .warn.info .tag,.warn.info .ico{color:var(--blue)}
+.warn.breakeven{border-left-color:var(--red);border-left-width:5px;background:#fdf6f5;
+  box-shadow:0 1px 3px rgba(192,0,0,.12)}
+.warn.breakeven .tag,.warn.breakeven .ico{color:var(--red)}
+.badge{display:inline-block;border:1px solid;border-radius:999px;padding:2px 9px;
+  font-family:var(--num);font-size:.65rem;letter-spacing:.07em;font-weight:600}
+.badge-a{color:var(--green)} .badge-b{color:var(--amber)}
+.evidence{margin:12px 17px 0;padding:11px 13px;border-radius:var(--r-sm);
+  border:1px solid #ecdfc4;border-left:4px solid var(--amber);background:#fffdf6;font-size:.85rem}
+
+/* ---- grafikler (A18c-8) ---- */
+.charts{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:20px;align-items:start}
+.chart-box{background:#fcfcfb;border:1px solid #eceae4;border-radius:var(--r-sm);padding:14px 16px}
+details.chart-box>summary{list-style:none;padding:2px 0;color:var(--blue);cursor:pointer;font-size:.92rem}
+details.chart-box>summary::-webkit-details-marker{display:none}
+details.chart-box>summary::before{content:"\25B8 ";font-size:.9em}
+details.chart-box[open]>summary::before{content:"\25BE "}
+.chart-box svg{width:100%;height:auto;display:block;font-family:var(--serif)}
+.chart-box h3{font-size:.88rem;margin-bottom:9px}
+.chart-note{font-size:.74rem;color:var(--muted);margin-top:9px;line-height:1.45}
+.source-line{font-family:var(--num);font-size:.72rem;color:var(--muted);margin-top:10px}
+
+.foot{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);
+  font-family:var(--num);font-size:.75rem;color:var(--muted);line-height:1.7}
+.foot b{color:#39424c;font-weight:600}
+.foot a{color:var(--blue)}
+.hidden{display:none!important}
+#results.stale{opacity:.42;filter:grayscale(.55)}
+#staleBadge{display:none;position:sticky;top:0;z-index:5;margin-bottom:14px;padding:11px 14px;
+  border-radius:var(--r-sm);border:1px solid #e8c9a2;border-left:4px solid var(--amber);
+  background:#fff8ee;color:#8a3b00;box-shadow:var(--sh)}
+#staleBadge.show{display:block}
+#staleBadge b{display:block}
+#staleBadge span{font-weight:400;color:#7a5330;font-size:.85rem}
+.error{background:#fdf3f3;border:1px solid #d8a9a9;border-left:4px solid var(--red);
+  border-radius:var(--r-sm);color:#8d1111;padding:13px;font-weight:700}
+/* eksenler ince, izgara acik gri kesikli, veri cizgileri kalin (A18c-8) */
+.tick{stroke:#b6b2aa;stroke-width:.7}
+.gridline{stroke:#c3c0b9;stroke-width:.6;stroke-dasharray:2 4;opacity:.75}
+.axis-text{font-size:12px;fill:#5b6672}
+.legend{font-size:11px}
+.scope-ok{color:var(--green);font-weight:700}.scope-bad{color:var(--red);font-weight:700}
+@media(max-width:980px){.layout{grid-template-columns:1fr}.charts{grid-template-columns:1fr}.hero{grid-template-columns:1fr}.metric{border-right:0;border-bottom:1px solid #eceae4}.topbar .id{margin-left:0;width:100%}}
+@media(max-width:600px){.wrap{padding:0 12px 40px}.topbar{margin:0 -12px 18px;padding:8px 14px}.grid{grid-template-columns:1fr}body{font-size:16px}.metric.primary .value{font-size:2.3rem}}
+@media print{body{background:#fff}.region{break-inside:avoid;box-shadow:none}button,#staleBadge{display:none}.topbar{background:#fff;color:var(--ink);border-bottom:2px solid var(--ink)}}
+
+/* ============================================================================
+   A18c-9 — TEK EKRAN SIKISTIRMA (1280x900)
+   Sekil 10 tek ekran goruntusu olarak kullanilacak; dort bolgenin TAMAMI
+   1280x900'e sigmali. Olculen ilk hali 2316 px idi. Asagidaki kurallar YALNIZ
+   genis ekranda (>=1180px) uygulanir — mobil/tablet duzeni degismez.
+   ========================================================================== */
+@media(min-width:1180px){
+  /* baslik blogu: kimlik zaten ust seritte, burasi kisalir */
+  .mast{padding-bottom:10px;margin-bottom:16px}
+  .mast h1{font-size:1.62rem}
+  .mast .sub{font-size:.88rem;margin-top:6px;max-width:96ch;line-height:1.4}
+  .notice{margin-top:11px;padding:9px 13px;font-size:.85rem;line-height:1.4}
+
+  /* sonuc kartlari biraz sikisir, V_d hakimiyeti KORUNUR */
+  .metric{padding:12px 15px}
+  .metric .value{font-size:1.35rem;margin:4px 0 3px}
+  .metric.primary .value{font-size:2.55rem;margin:3px 0 4px}
+  .metric .note{font-size:.72rem;line-height:1.3}
+  .gamma-line{padding:8px 15px;font-size:.72rem}
+
+  /* zincir ve uyarilar: ayni yukseklikte, kaydirilabilir */
+  #r-chain .body,#r-warn .body{max-height:296px}
+  .chain td{padding:5px 15px}
+  .chain tr.tier td{padding:10px 15px 3px}
+
+  /* grafik seridi: yatay iki panel, yukseklik sinirli */
+  #r-chart>.body{padding:12px 14px}
+  .charts{gap:16px}
+  .chart-box{padding:10px 12px}
+  .chart-box svg{max-height:286px}
+  .chart-box h3{font-size:.82rem;margin-bottom:5px}
+  .chart-note{font-size:.7rem;margin-top:6px}
+  .region{margin-bottom:0}
+  .foot{margin-top:22px;padding-top:12px;font-size:.72rem;line-height:1.55}
+}
+
+/* ---- A18c-10: girdi sutunu UC SATIRIN TAMAMINI kaplar --------------------
+   Onceki alan haritasi "inp res res / inp chain warn / chart chart chart" idi;
+   grafik seridi tam genislikte oldugu icin GIRDI PANELININ ALTINDAN basliyordu
+   ve 1032 px'lik form, grafigi 1305 px'e itiyordu. Grafik sag iki sutuna
+   alininca sayfa yuksekligini artik SAG YIGIN belirliyor. ------------------ */
+@media(min-width:1180px){
+  .layout{grid-template-areas:"inp res res" "inp chain warn" "inp chart chart"}
+  .layout>aside{position:static}
+  /* form daha sik: 1032 -> ~820 */
+  .grid{gap:8px 10px}
+  label{font-size:.735rem;margin-bottom:3px;line-height:1.25}
+  input,select{padding:6px 9px;font-size:.87rem}
+  .field-group{margin:13px 0 7px;padding-bottom:4px;font-size:.63rem}
+  #form>.body{padding:13px}
+  button{padding:10px;margin-top:14px;font-size:.85rem}
+  .check{margin-top:13px}
+  .chart-box svg{max-height:250px}
+}
+
+/* ============================================================================
+   A18c-11 — ŞEKİL / EKRAN GÖRÜNTÜSÜ MODU   (?print=1  ya da  yazdırma)
+
+   NEDEN: normal kullanımda "Calculation chain" ve "Warnings" panelleri sabit
+   yükseklikte ve kaydırmalıdır — dört bölgenin tek ekranda durması için. Şekil
+   üretiminde bu KESİYOR: zincirin Tier 3'ü ve nihai satırı, uyarıların da
+   başa-baş kartı görünmüyor. Aracın asıl iddiası zincirin okunabilirliği
+   olduğu için, kesik bir görüntü iddiayı görünmez kılar.
+
+   Bu mod SADECE `?print=1` ile (veya yazdırırken) devreye girer; parametresiz
+   normal kullanım DEĞİŞMEZ. `!important` gerekli, çünkü sınırlar
+   `@media(min-width:1180px)` içinde tanımlı ve orası daha sonra geliyor.
+   ========================================================================== */
+html.sekil #r-chain > .body,
+html.sekil #r-warn  > .body{max-height:none !important;overflow:visible !important}
+html.sekil .layout > aside{position:static !important}
+html.sekil .chart-box svg{max-height:none !important}
+/* sayfa yuksekligi serbest: tek kareye sigma kaygisi yok */
+html.sekil .region{margin-bottom:0}
+html.sekil .wrap{padding-bottom:24px}
+
+@media print{
+  #r-chain > .body,#r-warn > .body{max-height:none !important;overflow:visible !important}
+  .layout > aside{position:static !important}
+  .chart-box svg{max-height:none !important}
+}
+
+/* ---- A18c-12: SEKIL MODUNDA GRAFIK BOLGESINI GIZLE (&nocharts=1) ----------
+   Sekil 9'un isi HESAP ZINCIRINI ve UYARI SISTEMINI gostermektir — "kara kutu
+   degil" iddiasinin gorsel kanitidir. Arayuzdeki grafik, makalede Sekil 6-8
+   olarak ZATEN vektor PDF halinde var; ekran goruntusu olarak tekrarlamak ayni
+   bilgiyi bir kez temiz bir kez bulanik koymak olur.
+   AYRI parametre, cunku @media print'te grafikler GORUNMELIDIR: sayfayi gercekten
+   yazdiran biri onlari kaybetmemeli. ------------------------------------------ */
+html.sekil-nografik #r-chart{display:none !important}
+
+/* Grafik gizlenince UCUNCU IZGARA SATIRI hala yer tutuyordu (form o satira da
+   yayildigi icin ~317 px bosluk kaliyordu) -> alan haritasi iki satira iner.
+   Altbilgi de sekilde gizlenir: 190 mm'de ~5 pt'ye iniyor, yani okunmuyor ama
+   27 mm yukseklik yiyor. Model kunyesi zaten UST SERITTE duruyor. */
+html.sekil-nografik .layout{grid-template-areas:"inp res res" "inp chain warn" !important}
+html.sekil-nografik .foot{display:none !important}
+
+/* ---- A18c-13: VERI TASIYAN METNI BUYUTME DENENDI ve REDDEDILDI -------------
+   Amac: 190 mm'de 1280 px'lik goruntude 1 px = 0.4208 pt oldugu icin zincir
+   degerleri 6.3 pt, uyari basliklari 6.4 pt kaliyordu (Elsevier alt siniri 7 pt).
+   DENENDI: `.chain td/.val` ve `.warn .ttl` 16.8 px'e cikarildi -> punto 7.1-7.2 pt
+   OLDU, AMA sayfa 1216 -> 1514 px'e cikti (190 mm'de 181 -> 225 mm).
+   REDDEDILME GEREKCESI (olculdu, tahmin degil): 225 mm'lik bir sekil caption ile
+   birlikte sayfaya sigmaz; sigsin diye kucultulurse 7.1 pt YENIDEN 7'nin altina
+   duser. Yani buyutme pratikte HICBIR SEY kazandirmiyor, yalnizca sekli
+   kullanilamaz hale getiriyor.
+   KARAR: arayuz kendi oranlarinda birakilir. Sekil 9 bir YAZILIM EKRAN GORUNTUSUDUR;
+   okunmasi gereken ogeler V_d (17.2 pt) ve uyari kartinin varligidir, zincirin tek
+   tek degerleri DEGIL — onlari caption tasiyor (106.4 <-> 112.2 kN).
+   ------------------------------------------------------------------------- */
+</style>
+</head>
+<body><script>(function(){var q=location.search,h=location.hash,c=document.documentElement.classList;if(/[?&]print=1/.test(q)||/(^|#)print(-nocharts)?$/.test(h))c.add("sekil");if(/[?&]nocharts=1/.test(q)||/(^|#)print-nocharts$/.test(h))c.add("sekil-nografik");})();</script>
+<div class="wrap"><div class="topbar"><span class="nm">Opening-adjacent punching calculator</span><span class="vr">v2.1</span><span class="id">EN&nbsp;1992-1-1:2004 base &middot; <b>&kappa;<sub>cal</sub> = 1.1544</b> &middot; &eta;<sub>op</sub> with no fitted parameters &middot; 80 specimens / 11 studies</span></div>
+<header class="mast"><h1>Punching resistance of opening-adjacent slab&ndash;column connections</h1><p class="sub">A transparent, closed-form research model: EN&nbsp;1992-1-1:2004 evaluated on the full control perimeter, an opening factor with no fitted parameters, a strengthening recovery factor, and proposed partial factors.</p><div class="notice"><b>This is not a design code.</b>It is a research model calibrated on 80 specimens from 11 studies. The partial factors are research recommendations, not code-committee calibration. Flexural capacity and all applicable code checks must be verified separately.</div></header>
+<main class="layout">
+<aside><form id="form" class="region"><h2>Input</h2><div class="body">
+<div class="field-group">Column and slab</div><div class="grid">
+<div><label for="c1">Column <math xmlns="http://www.w3.org/1998/Math/MathML"><msub><mi>c</mi><mi>1</mi></msub></math></label><span class="inp"><input id="c1" type="number" value="250" min="1" step="1"><i class="u">mm</i></span></div><div><label for="c2">Column <math xmlns="http://www.w3.org/1998/Math/MathML"><msub><mi>c</mi><mi>2</mi></msub></math></label><span class="inp"><input id="c2" type="number" value="250" min="1" step="1"><i class="u">mm</i></span></div>
+<div><label for="d">Effective depth <math xmlns="http://www.w3.org/1998/Math/MathML"><mi>d</mi></math></label><span class="inp"><input id="d" type="number" value="100" min="1" step="1"><i class="u">mm</i></span></div><div><label for="t">Slab thickness h</label><span class="inp"><input id="t" type="number" value="125" min="1" step="1"><i class="u">mm</i></span></div>
+<div><label for="B">Slab width B</label><span class="inp"><input id="B" type="number" value="2000" min="1"><i class="u">mm</i></span></div><div><label for="L">Slab length L</label><span class="inp"><input id="L" type="number" value="2000" min="1"><i class="u">mm</i></span></div>
+<div><label for="fc">Cylinder-equivalent <math xmlns="http://www.w3.org/1998/Math/MathML"><msub><mi>f</mi><mi>c</mi></msub></math></label><span class="inp"><input id="fc" type="number" value="30" min="1" step="0.01"><i class="u">MPa</i></span></div><div><label for="ro">Gross reinforcement <math xmlns="http://www.w3.org/1998/Math/MathML"><msub><mi>&#961;</mi><mi>l</mi></msub></math></label><span class="inp"><input id="ro" type="number" value="1" min="0.01" step="0.001"><i class="u">%</i></span></div>
+<div><label for="columnLocation">Column location</label><select id="columnLocation"><option value="ic">Interior</option><option value="kenar">Edge</option><option value="kose">Corner</option></select></div><div><label for="columnSection">Column section</label><select id="columnSection"><option value="dikdortgen">Rectangular</option><option value="dairesel">Circular</option><option value="L">L-shaped</option><option value="T">T-shaped</option></select></div></div>
+<div class="section-title">Opening geometry</div><div class="grid">
+<div><label for="openingCount">Number of openings</label><select id="openingCount"><option value="0">0 — solid control</option><option value="1">1</option><option value="2" selected>2</option></select></div><div><label for="layout">Layout class</label><select id="layout"><option value="paralel">Face-centred</option><option value="capraz">Corner</option><option value="bitisik">L-arrangement</option></select></div>
+<div><label for="aop">Radial size <math xmlns="http://www.w3.org/1998/Math/MathML"><msub><mi>a</mi><mi>op</mi></msub></math></label><span class="inp"><input id="aop" type="number" value="300" min="0"><i class="u">mm</i></span></div><div><label for="bop">Tangential size <math xmlns="http://www.w3.org/1998/Math/MathML"><msub><mi>b</mi><mi>op</mi></msub></math></label><span class="inp"><input id="bop" type="number" value="300" min="0"><i class="u">mm</i></span></div>
+<div><label for="distance">Clear distance s_op</label><span class="inp"><input id="distance" type="number" value="0" min="0"><i class="u">mm</i></span></div><div><label for="shape">Opening shape</label><select id="shape"><option value="kare">Square</option><option value="dikdortgen">Rectangular</option><option value="dairesel">Circular</option></select></div></div>
+<div class="field-group">Design and strengthening</div><div class="grid">
+<div><label for="method">Strengthening method</label><select id="method"><option value="">None</option><option value="CFRP" selected>CFRP</option><option value="shear studs">Shear studs</option><option value="TRM">TRM</option><option value="fernandez">Inclined bonded bars</option></select></div><div><label for="class">Consequence class</label><select id="class"><option value="RC1">RC1 · β=3.3</option><option value="RC2" selected>RC2 · β=3.8</option><option value="RC3">RC3 · β=4.3</option></select></div>
+<div><label for="vflex">Optional V_flex</label><span class="inp"><input id="vflex" type="number" min="0" placeholder="Not provided"><i class="u">kN</i></span></div><div><label for="loading">Loading</label><select id="loading"><option value="merkezi">Concentric</option><option value="eksantrik">Eccentric</option><option value="dengesiz moment">Unbalanced moment</option></select></div>
+<div><label for="ecc">Eccentricity</label><span class="inp"><input id="ecc" type="number" value="0" min="0"><i class="u">mm</i></span></div><div><label for="moment">Unbalanced M/V</label><input id="moment" type="number" value="0" min="0" step="0.01"></div>
+<label class="check wide"><input id="shear" type="checkbox"> Shear reinforcement present</label></div><button type="submit">Calculate</button></div></form></aside>
+<section class="resultcol"><div id="error" class="error hidden"></div><div id="staleBadge" role="status" aria-live="polite">&#9888;&#65039; Inputs changed &mdash; press &ldquo;Calculate&rdquo; to update<span>The result below was computed with the previous inputs. Scope and validity warnings shown here may not apply to what is currently entered.</span></div><div id="results" class="hidden">
+<div class="region" id="r-hero"><h2>Design result</h2><div class="hero"><div class="metric primary"><div class="label">Design resistance <math><msub><mi>V</mi><mi>d</mi></msub></math></div><div id="vd" class="value">&mdash;</div><div id="vdNote" class="note"></div></div><div class="metric"><div class="label">Unstrengthened design value</div><div id="vdUn" class="value">&mdash;</div><div class="note">Same opening geometry and consequence class</div></div><div class="metric"><div class="label">Mean prediction</div><div id="vmean" class="value">&mdash;</div><div class="note">No partial factor &mdash; not a design resistance</div></div></div><div class="gamma-line" id="gammaLine"></div><div id="evidenceBox"></div></div>
+<div class="region" id="r-chain"><h2>Calculation chain</h2><div class="body" style="padding:0"><table class="chain"><thead><tr><th class="sym">Quantity</th><th>Definition</th><th class="val">Value</th></tr></thead><tbody id="steps"></tbody></table></div></div>
+<div class="region" id="r-warn"><h2>Warnings and scope</h2><div class="body" id="warnings"></div></div>
+<div class="region" id="r-chart"><h2>Design charts</h2><div class="body"><div class="charts"><div class="chart-box"><h3>Opening efficiency and design levels</h3><div id="mainChart"></div><div class="chart-note">Curves follow the supplied design-chart table convention: normalized levels exclude κ_cal. The user point uses the computed κ_u.</div></div><details class="chart-box"><summary style="cursor:pointer;font-weight:700;font-size:.9rem">Calibration scope map</summary><div id="scopeChart"></div><div class="chart-note">Envelope and 5–95% summary bands are from T7b_gecerlilik_araligi.csv; raw specimen coordinates are intentionally not embedded.</div></details></div><div class="source-line" id="chartValidation"></div></div>
+</div></section></main>
+<footer class="foot"><p><b>Tool version 2.0</b> &middot; single file, no server, no external dependencies &mdash; runs online or from a local copy in any modern browser. This file contains the calibration tables but <b>not the specimen data</b>.</p><p><b>Data, code and archived copy (cite this):</b> <a href="https://doi.org/10.5281/zenodo.21872724">https://doi.org/10.5281/zenodo.21872724</a> &mdash; the deposit also contains the database, the exclusion log and the full analysis code.</p><p><b>Live copy:</b> [URL to be inserted]</p><p><b>Article:</b> [citation to be inserted on publication]</p><p>Model: EN&nbsp;1992-1-1:2004 base, <math xmlns="http://www.w3.org/1998/Math/MathML"><msub><mi>&#954;</mi><mi>cal</mi></msub></math> = 1.1544, <math xmlns="http://www.w3.org/1998/Math/MathML"><msub><mi>&#951;</mi><mi>op</mi></msub></math> with no fitted parameters. Calibration sample: 80 specimens / 11 studies; strengthening factors from 27 twin pairs. Verified against the Python reference implementation to 1e-9 on every intermediate value.</p></footer></div>
+<script>
+/* Verified model core, generated verbatim from out/reference_model.mjs. */
+/**
+ * Literal ES-module translation of reference_model.py (2026-08-09).
+ *
+ * This file is a TRANSLATION, not a re-derivation: every intermediate value is
+ * returned so that agreement with the Python reference can be checked term by
+ * term (tests/test_js_parity.py, tolerance 1e-9).
+ *
+ * Sources of the embedded constants:
+ * - Phase 7 (k_g):     csv/faz7_adim2_kg_temel.csv, csv/faz7_adim2_f_delik_kg.csv,
+ *                      csv/faz7_adim4_kg_nihai_tablo.csv
+ * - Phase 8 (gamma_R): csv/faz8_onerilen_gamma.csv
+ *
+ * The constants are hard-coded here because this module must mirror the Python
+ * reference exactly and therefore cannot read files. Every other layer of the
+ * tool loads the same values from the CSV sources into a single object, and
+ * test_parity.mjs checks the two against each other, so a table that is updated
+ * without updating this file fails the test rather than ageing silently.
+ *
+ * Identifier names are kept in the original language of the reference
+ * implementation on purpose: renaming them would break the golden file and the
+ * column headers of every CSV in the project. User-facing text is translated in
+ * the interface layer, not here.
+ */
+
+const LAMBDA = 1.1544;
+const F_DELIK_C = 0.5;
+const KADEME1 = "EC2 2004 (EN 1992-1-1:2004, 6.4.4)";
+const VERI_SURUMU = "database_v3_frozen.csv sha256[:16]=9df2366017ff721d";
+
+const KG0 = Object.freeze({ CFRP: 1.3422, saplama: 1.3738, TRM: 1.5827, fernandez: 1.2454 });
+const ETA_OP_G = Object.freeze({ paralel: 0.9764, capraz: 0.9124, bitisik: 1.2710, bosluksuz: 1.0 });
+const GAMMA_G = 0.90;
+const GAMMA_R = Object.freeze({ RC1: [1.75, 1.95], RC2: [1.85, 2.15], RC3: [2.00, 2.35] });
+
+const YONTEM_ALIAS = Object.freeze({
+  cfrp: "CFRP", trm: "TRM", saplama: "saplama",
+  "shear studs": "saplama", studs: "saplama", stud: "saplama",
+  fernandez: "fernandez", "inclined bars": "fernandez", "egik cubuk": "fernandez",
+});
+const DIZILIM_ALIAS = Object.freeze({
+  paralel: "paralel", "face-centred": "paralel", "face centred": "paralel",
+  capraz: "capraz", "çapraz": "capraz", corner: "capraz",
+  bitisik: "bitisik", "bitişik": "bitisik", "l-arrangement": "bitisik",
+  bosluksuz: "bosluksuz", "tek yuz": "paralel", "tek yüz": "paralel",
+});
+
+const GECERLILIK = Object.freeze({
+  d_mm: [54.0, 200.0],
+  fc_MPa: [19.6, 44.0],
+  ro_yuzde: [0.39, 1.571],
+  u_red: [0.166, 1.000],
+  delik_maks_d: [0.0, 7.37],
+  delik_mesafe_d: [0.0, 5.33],
+  kolon_b1_d: [1.00, 2.78],
+  kolon_konum: "yalniz IC kolon",
+  yukleme: "yalniz MERKEZI (eksantriklik/dengesiz moment YOK)",
+  kayma_donatisi: "YOK (kayma donatili doseme kapsam disi)",
+  kolon_kesiti: "DIKDORTGEN (L/dairesel/T kesit kapsam DISI)",
+});
+
+const GECERLILIK_ETIKET = Object.freeze({
+  d_mm: ["54.0", "200.0"], fc_MPa: ["19.6", "44.0"],
+  ro_yuzde: ["0.39", "1.571"], u_red: ["0.166", "1.0"],
+  delik_maks_d: ["0.0", "7.37"], delik_mesafe_d: ["0.0", "5.33"],
+  kolon_b1_d: ["1.0", "2.78"],
+});
+
+const TWO_PI = 2 * Math.PI;
+
+function pyRepr(value) {
+  if (typeof value === "string") return `'${value.replaceAll("\\", "\\\\").replaceAll("'", "\\'")}'`;
+  if (value === null) return "None";
+  if (value === true) return "True";
+  if (value === false) return "False";
+  return String(value);
+}
+
+function pyTruthy(value) {
+  if (value === null || value === undefined || value === false) return false;
+  if (typeof value === "number") return value !== 0;
+  if (typeof value === "string" || Array.isArray(value)) return value.length !== 0;
+  return true;
+}
+
+const fixed = (value, digits) => Number(value).toFixed(digits);
+const signedFixed = (value, digits) => `${value >= 0 ? "+" : ""}${Number(value).toFixed(digits)}`;
+
+function delik(x0, y0, x1, y1, dairesel = false) {
+  return { x0, y0, x1, y1, dairesel };
+}
+
+function merkez(dl) { return [0.5 * (dl.x0 + dl.x1), 0.5 * (dl.y0 + dl.y1)]; }
+function yaricap(dl) { return 0.25 * ((dl.x1 - dl.x0) + (dl.y1 - dl.y0)); }
+
+function kolonYuzuneUzaklik(dl, c1, c2) {
+  const dx = Math.max(dl.x0 - c1 / 2, -c1 / 2 - dl.x1, 0.0);
+  const dy = Math.max(dl.y0 - c2 / 2, -c2 / 2 - dl.y1, 0.0);
+  return Math.hypot(dx, dy);
+}
+
+function acisalAralik(dl) {
+  if (dl.dairesel) {
+    const [cx, cy] = merkez(dl);
+    const r = yaricap(dl);
+    const L = Math.hypot(cx, cy);
+    if (L <= r) return [-Math.PI, Math.PI];
+    const yari = Math.asin(Math.min(1.0, r / L));
+    const a = Math.atan2(cy, cx);
+    return [a - yari, a + yari];
+  }
+  const aci = [];
+  for (const x of [dl.x0, dl.x1]) for (const y of [dl.y0, dl.y1]) aci.push(Math.atan2(y, x));
+  aci.sort((a, b) => a - b);
+  const farklar = [aci[1] - aci[0], aci[2] - aci[1], aci[3] - aci[2], aci[0] + TWO_PI - aci[3]];
+  let k = 0;
+  for (let i = 1; i < farklar.length; i += 1) if (farklar[i] > farklar[k]) k = i;
+  if (k === 3) return [aci[0], aci[3]];
+  const duzeltilmis = aci.map((a, i) => (i <= k ? a + TWO_PI : a));
+  return [Math.min(...duzeltilmis), Math.max(...duzeltilmis)];
+}
+
+function ec2EsdegerDelik(dl) {
+  if (dl.dairesel) return dl;
+  const [cx, cy] = merkez(dl);
+  const genisX = dl.x1 - dl.x0;
+  const genisY = dl.y1 - dl.y0;
+  if (Math.abs(cx) >= Math.abs(cy)) {
+    if (genisY > genisX) {
+      const yeni = Math.sqrt(genisY * genisX);
+      return delik(dl.x0, cy - yeni / 2, dl.x1, cy + yeni / 2);
+    }
+  } else if (genisX > genisY) {
+    const yeni = Math.sqrt(genisX * genisY);
+    return delik(cx - yeni / 2, dl.y0, cx + yeni / 2, dl.y1);
+  }
+  return dl;
+}
+
+function kontrolCevresi(c1, c2, offset, yuvarlakKose, n = 6000) {
+  const a = c1 / 2.0;
+  const b = c2 / 2.0;
+  const aci = [];
+  const ds = [];
+  function duzParca(x0, y0, x1, y1, toplam) {
+    const uz = Math.hypot(x1 - x0, y1 - y0);
+    const m = Math.max(2, Math.trunc((n * uz) / toplam));
+    for (let i = 0; i < m; i += 1) {
+      const t = (i + 0.5) / m;
+      aci.push(Math.atan2(y0 + (y1 - y0) * t, x0 + (x1 - x0) * t));
+      ds.push(uz / m);
+    }
+  }
+  if (!yuvarlakKose || offset === 0) {
+    const A = a + offset;
+    const B = b + offset;
+    const toplam = 4 * (A + B);
+    for (const p of [[A, -B, A, B], [A, B, -A, B], [-A, B, -A, -B], [-A, -B, A, -B]]) {
+      duzParca(...p, toplam);
+    }
+  } else {
+    const toplam = 2 * (c1 + c2) + TWO_PI * offset;
+    for (const p of [[a + offset, -b, a + offset, b], [a, b + offset, -a, b + offset],
+      [-a - offset, b, -a - offset, -b], [-a, -b - offset, a, -b - offset]]) {
+      duzParca(...p, toplam);
+    }
+    for (const [cx, cy, a0] of [[a, b, 0.0], [-a, b, Math.PI / 2], [-a, -b, Math.PI], [a, -b, 3 * Math.PI / 2]]) {
+      const uz = offset * Math.PI / 2;
+      const m = Math.max(2, Math.trunc((n * uz) / toplam));
+      for (let i = 0; i < m; i += 1) {
+        const th = a0 + ((i + 0.5) / m) * (Math.PI / 2);
+        aci.push(Math.atan2(cy + offset * Math.sin(th), cx + offset * Math.cos(th)));
+        ds.push(uz / m);
+      }
+    }
+  }
+  let uTam = 0.0;
+  for (const value of ds) uTam += value;
+  return [aci, ds, uTam];
+}
+
+function azaltilmisCevre(c1, c2, d, offsetKatsayisi, yuvarlakKose, delikler,
+  maksUzaklik = null, ec2Esdeger = false, n = 6000) {
+  const [aci, ds, uTam] = kontrolCevresi(c1, c2, offsetKatsayisi * d, yuvarlakKose, n);
+  const etkin = [];
+  for (const dl of delikler ?? []) {
+    if (maksUzaklik !== null && kolonYuzuneUzaklik(dl, c1, c2) > maksUzaklik) continue;
+    etkin.push(ec2Esdeger ? ec2EsdegerDelik(dl) : dl);
+  }
+  const maske = new Uint8Array(aci.length);
+  for (const dl of etkin) {
+    const [a0, a1] = acisalAralik(dl);
+    for (const kay of [-TWO_PI, 0.0, TWO_PI]) {
+      for (let i = 0; i < aci.length; i += 1) if (aci[i] >= a0 + kay && aci[i] <= a1 + kay) maske[i] = 1;
+    }
+  }
+  let kayip = 0.0;
+  for (let i = 0; i < ds.length; i += 1) if (maske[i]) kayip += ds[i];
+  return { u_tam: uTam, u_azaltilmis: uTam - kayip, u_kayip: kayip, dikkate_alinan_delik: etkin.length };
+}
+
+function azaltEc2(c1, c2, d, delikler) {
+  return azaltilmisCevre(c1, c2, d, 2.0, true, delikler, 6.0 * d, true);
+}
+
+function yerlesim(dizilim, b1Girdi, b2Girdi, nDelik, mesafe, c1, c2, dairesel = false) {
+  if (b1Girdi === null || b1Girdi === undefined || (nDelik || 0) === 0) return [];
+  const s = String(dizilim || "").toLowerCase();
+  const m = mesafe === null || mesafe === undefined ? 0.0 : Number(mesafe);
+  const b1 = Number(b1Girdi);
+  const b2 = Number(pyTruthy(b2Girdi) ? b2Girdi : b1Girdi);
+  const a = c1 / 2.0;
+  const b = c2 / 2.0;
+  function yuzX(isaret = 1, kaydir = 0.0) {
+    const x0 = a + m;
+    return delik(isaret > 0 ? isaret * x0 : -(x0 + b1), kaydir - b2 / 2,
+      isaret > 0 ? isaret * (x0 + b1) : -x0, kaydir + b2 / 2, dairesel);
+  }
+  function yuzY(isaret = 1, kaydir = 0.0) {
+    const y0 = b + m;
+    return delik(kaydir - b2 / 2, isaret > 0 ? isaret * y0 : -(y0 + b1),
+      kaydir + b2 / 2, isaret > 0 ? isaret * (y0 + b1) : -y0, dairesel);
+  }
+  function kose(sx = 1, sy = 1) {
+    const x0 = a + m;
+    const y0 = b + m;
+    return delik(sx > 0 ? x0 : -(x0 + b1), sy > 0 ? y0 : -(y0 + b2),
+      sx > 0 ? x0 + b1 : -x0, sy > 0 ? y0 + b2 : -y0, dairesel);
+  }
+  const yuzDar = (isaret = 1) => (c2 <= c1 ? yuzX(isaret) : yuzY(isaret));
+  const yuzGenis = (isaret = 1) => (c2 <= c1 ? yuzY(isaret) : yuzX(isaret));
+  const vari = (...kelimeler) => kelimeler.some((x) => s.includes(x));
+
+  if (vari("kucuk", "küçük", "kisa kenar", "kısa kenar", "dar yuz")) {
+    if (nDelik === 1) return [yuzDar(1)];
+    if (nDelik === 2) return [yuzDar(1), yuzDar(-1)];
+    return null;
+  }
+  if (vari("buyuk yuz", "uzun kenar", "genis yuz")) {
+    if (nDelik === 1) return [yuzGenis(1)];
+    if (nDelik === 2) return [yuzGenis(1), yuzGenis(-1)];
+    return null;
+  }
+  if (vari("bosluksuz")) return [];
+  if (vari("paralel") && nDelik === 2) return [yuzX(1), yuzX(-1)];
+  if (vari("capraz", "çapraz") && nDelik === 2) return [kose(1, 1), kose(-1, -1)];
+  if (vari("capraz", "çapraz") && nDelik === 1) return [kose(1, 1)];
+  if (vari("paralel") && nDelik === 1) return [yuzX(1)];
+  if (s.trim() === "bitisik") return [yuzX(1), yuzY(1)];
+  if (vari("karsilikli")) return [yuzX(1), yuzX(-1)];
+  if (vari("2x2")) {
+    if (nDelik !== 4) return null;
+    return [b2 / 2 + b2, b2 / 2].map((ky) => delik(a + m, ky - b2, a + m + b1, ky, dairesel))
+      .concat([b2 / 2 + b2, b2 / 2].map((ky) => delik(a + m + b1, ky - b2, a + m + 2 * b1, ky, dairesel)));
+  }
+  if (vari("l duzeni", "l düzeni", "kose cevresinde")) return nDelik === 3 ? [yuzX(1), kose(1, 1), yuzY(1)] : null;
+  if (vari("yan yana", "e-w sira", "sira")) {
+    if (nDelik === 2) return [-b2, 0.0].map((k) => delik(a + m, k, a + m + b1, k + b2, dairesel));
+    if (nDelik === 3) return [-1.5 * b2, -0.5 * b2, 0.5 * b2].map((k) => delik(a + m, k, a + m + b1, k + b2, dairesel));
+    return null;
+  }
+  if (vari("hat", "sira disari", "disari")) {
+    const sonuc = [];
+    for (let i = 0; i < Math.trunc(nDelik); i += 1) sonuc.push(delik(a + m + i * b1, -b2 / 2, a + m + (i + 1) * b1, b2 / 2, dairesel));
+    return sonuc;
+  }
+  if (vari("tek yuz", "tek yüz", "bir yuz", "tek delik", "on yuz")) return nDelik === 1 ? [yuzX(1)] : null;
+  if (vari("dort yuz", "dört yüz", "her yuz")) return nDelik === 4 ? [yuzX(1), yuzX(-1), yuzY(1), yuzY(-1)] : null;
+  if (vari("kose", "köse", "köşe")) return nDelik === 1 ? [kose(1, 1)] : null;
+  return null;
+}
+
+function vEc2(fc, u, d, ro, C = 0.18, vMinUygula = true) {
+  const k = Math.min(2.0, 1.0 + Math.sqrt(200.0 / d));
+  const rho = Math.min(ro, 0.02);
+  let v = C * k * Math.pow(100.0 * rho * fc, 1.0 / 3.0);
+  if (vMinUygula) v = Math.max(v, 0.035 * Math.pow(k, 1.5) * Math.sqrt(fc));
+  return v * u * d / 1000.0;
+}
+
+function kanitB(yon, diz) {
+  return yon === "TRM" || (["CFRP", "saplama", "TRM", "fernandez"].includes(yon) && diz === "bitisik");
+}
+
+function f_delik(u_red, c = F_DELIK_C) {
+  return 1.0 - c * Math.sqrt(Math.max(0.0, 1.0 - u_red));
+}
+
+function hesapla({
+  d, fc, ro, kolon_b1, kolon_b2 = null,
+  delik_b1 = null, delik_b2 = null, delik_sayisi = 0,
+  delik_dizilim = "bosluksuz", delik_mesafe = 0.0, delik_sekli = "kare",
+  kolon_konum = "ic", kolon_kesiti = "dikdortgen", yukleme = "merkezi",
+  eksantriklik = 0.0, moment_M_V = 0.0, kayma_donatisi = false, V_flex_kN = null,
+  g_yontem = null, g_miktar = null, sinif = "RC2",
+  fy = null, t = null, B = null, r_s = null, d_g = null,
+  lam = LAMBDA, c_fdelik = F_DELIK_C,
+} = {}) {
+  void g_miktar;
+  const uyari = [];
+  kolon_b2 = pyTruthy(kolon_b2) ? kolon_b2 : kolon_b1;
+
+  if (!["ic", "iç", "interior"].includes(String(kolon_konum).trim().toLowerCase())) {
+    uyari.push(`KAPSAM DISI: kolon_konum = ${pyRepr(kolon_konum)}. Model YALNIZ IC kolon ` +
+      "icin kalibre edildi; kenar/kose kolon verisi ana sete girmemistir.");
+  }
+  if (!["dikdortgen", "dikdörtgen", "kare", "rectangular"].includes(String(kolon_kesiti).trim().toLowerCase())) {
+    uyari.push(`KAPSAM DISI: kolon_kesiti = ${pyRepr(kolon_kesiti)}. Geometri motoru ` +
+      "DIKDORTGEN kolon varsayar; L/dairesel/T kesitte kontrol cevresi " +
+      "YANLIS hesaplanir (ornek: dairesel D=402 kare sanilirsa cevre +%14.4).");
+  }
+  if (!["merkezi", "merkezî", "concentric", "central"].includes(String(yukleme).trim().toLowerCase())) {
+    uyari.push(`KAPSAM DISI: yukleme = ${pyRepr(yukleme)}. Model YALNIZ merkezi yukleme ` + "icin kalibre edildi.");
+  }
+  if (pyTruthy(eksantriklik)) uyari.push(`KAPSAM DISI: eksantriklik = ${eksantriklik} mm. Eksantrik yukleme ` + "kalibrasyon setine GIRMEMISTIR (ayri tartisma konusu).");
+  if (pyTruthy(moment_M_V)) uyari.push(`KAPSAM DISI: dengesiz moment M/V = ${moment_M_V}. Model dengesiz ` + "moment aktarimi icin kalibre EDILMEMISTIR.");
+  if (pyTruthy(kayma_donatisi)) uyari.push("KAPSAM DISI: kayma_donatisi = True. Kayma donatili doseme kalibrasyon " + "setine GIRMEMISTIR; EC2'nin kayma donatili kurallari uygulanmaz.");
+
+  const kullanilmayan = [];
+  if (r_s !== null && r_s !== undefined) kullanilmayan.push("r_s");
+  if (d_g !== null && d_g !== undefined) kullanilmayan.push("d_g");
+  if (fy !== null && fy !== undefined) kullanilmayan.push("fy");
+  if (kullanilmayan.length) uyari.push("EC2 2004 tabaninda KULLANILMAYAN girdi(ler) yok sayildi: " + kullanilmayan.join(", "));
+
+  const [, , u_tam] = kontrolCevresi(kolon_b1, kolon_b2, 2.0 * d, true);
+  const n_delik = Math.trunc(pyTruthy(delik_sayisi) ? Number(delik_sayisi) : 0);
+  let u_red_mm;
+  if (n_delik > 0) {
+    const delikler = yerlesim(delik_dizilim, delik_b1, delik_b2, n_delik, delik_mesafe,
+      kolon_b1, kolon_b2, String(delik_sekli).trim().toLowerCase() === "dairesel");
+    if (delikler === null) throw new Error(`delik_dizilim cozulemedi: ${pyRepr(delik_dizilim)}`);
+    u_red_mm = azaltEc2(kolon_b1, kolon_b2, d, delikler).u_azaltilmis;
+  } else u_red_mm = u_tam;
+  const u_red = u_red_mm / u_tam;
+
+  const T1 = vEc2(fc, u_tam, d, ro / 100.0);
+  const T1_lam = lam * T1;
+  const fd = f_delik(u_red, c_fdelik);
+
+  const sinifAnahtar = String(sinif).trim().toUpperCase();
+  if (!(sinifAnahtar in GAMMA_R)) {
+    throw new Error(`sinif cozulemedi: ${pyRepr(sinif)} (beklenen: ['RC1', 'RC2', 'RC3'])`);
+  }
+  sinif = sinifAnahtar;
+  const [g_un, g_str] = GAMMA_R[sinif];
+  const diz_anahtar = n_delik === 0 ? "bosluksuz" : DIZILIM_ALIAS[String(delik_dizilim).trim().toLowerCase()];
+
+  let kg_0 = null;
+  let eta_g = null;
+  let kanit = null;
+  let kg;
+  let kg_durum;
+  if (pyTruthy(g_yontem)) {
+    if (diz_anahtar === undefined) {
+      throw new Error(`k_g icin delik_dizilim cozulemedi: ${pyRepr(delik_dizilim)}. eta_op,g YALNIZ ` +
+        "'paralel' (face-centred), 'capraz' (corner) ve 'bitisik' (L-arrangement) " +
+        "icin kalibre edilmistir (K12/K14); baska bir dizilime esleme SEMANTIK " +
+        "karardir ve otomatik YAPILMAZ. Guclendirme hesabi icin bu ucunden birini " + "acikca verin.");
+    }
+    const yon = YONTEM_ALIAS[String(g_yontem).trim().toLowerCase()];
+    if (yon === undefined) {
+      throw new Error(`g_yontem cozulemedi: ${pyRepr(g_yontem)} (beklenen: ['CFRP', 'TRM', 'fernandez', 'saplama'])`);
+    }
+    kg_0 = KG0[yon];
+    eta_g = ETA_OP_G[diz_anahtar];
+    kg = kg_0 * eta_g;
+    kanit = kanitB(yon, diz_anahtar) ? "B" : "A";
+    kg_durum = `k_g = k_g,0(${yon}) x eta_op,g(${diz_anahtar}) = ${fixed(kg_0, 4)} x ` +
+      `${fixed(eta_g, 4)} = ${fixed(kg, 4)} · KANIT DUZEYI ${kanit}`;
+    if (yon === "fernandez") uyari.push("AYRI KATEGORI — 'fernandez' (egik yapistirilmis celik cubuk) " +
+      "kayma saplamasina KATILMAZ (yapistirma + egim != mekanik ankraj); ayri raporlanir.");
+    if (yon === "TRM") uyari.push("KANIT DUZEYI B — TRM: k_g,temel TEK laboratuvardan (mercimek_2022, 4 cift) " +
+      "kalibre edilmistir. Sinirli dis karsilastirmada model TRM'nin k_g'sini " +
+      "ORTALAMA %32 FAZLA tahmin etmektedir (gozlenen/tahmin = 0.759, n=2, tek " +
+      "kaynak) — sapmanin YONU " +
+      "bilinmekte, BUYUKLUGU bilinmemektedir. Bagimsiz deneyle dogrulanmalidir.");
+    if (n_delik >= 2 && diz_anahtar === "bitisik") uyari.push("KANIT DUZEYI B — BITISIK DIZILIM: f_delik,kg yalniz kendi ikiz programimizla " +
+      "(9 cift, TEK laboratuvar) kalibre edilmistir. BAGIMSIZ HICBIR DOGRULAMA " +
+      "NOKTASI YOKTUR ve bosluk YAPISALDIR (mevcut bagimsiz veri setlerinin tamami " +
+      "TEK delikli, `bitisik` ise tanimi geregi IKI deliklidir). Uc dizilim icinde " +
+      "EN YUKSEK deger budur; yani DOGRULANMAMIS olan taraf, tasarimda EN COMERT " +
+      "olan taraftir. (TRM'den FARKI: TRM'de sapmanin yonu biliniyor, burada hic " +
+      "veri yok.) Bagimsiz IKI DELIKLI deneyle dogrulanmalidir.");
+  } else {
+    kg = 1.0;
+    kg_durum = "guclendirme yok";
+  }
+
+  const V = T1_lam * fd * kg;
+  const V_d_un = T1_lam * fd / g_un;
+  let kg_tasarim;
+  let V_d;
+  let esik;
+  let net;
+  if (pyTruthy(g_yontem)) {
+    kg_tasarim = GAMMA_G * kg;
+    V_d = T1_lam * fd * kg_tasarim / g_str;
+    esik = g_str / g_un;
+    net = 100.0 * (kg_tasarim / esik - 1.0);
+    if (kg_tasarim <= esik) uyari.push(`BASA-BAS ESIGI ALTINDA (${sinif}): gamma_g*k_g = ${fixed(kg_tasarim, 4)} <= ` +
+      `esik ${fixed(esik, 4)} (= gamma_R,gucl/gamma_R,gucl.siz = ${g_str}/${g_un}). ` +
+      `Guclendirme bu hucrede TASARIM DEGERINI DUSURUYOR (net ${signedFixed(net, 1)}%): ` +
+      "k_g'nin getirdigi ek belirsizlik ortalama kazanci asiyor. ORTALAMA kazanc " +
+      "ile TASARIM kazanci ayni sey DEGILDIR.");
+  } else {
+    kg_tasarim = null; V_d = V_d_un; esik = null; net = null;
+  }
+
+  const olcum = {
+    d_mm: d, fc_MPa: fc, ro_yuzde: ro, u_red,
+    delik_maks_d: n_delik ? Math.max(delik_b1 || 0, delik_b2 || delik_b1 || 0) / d : 0.0,
+    delik_mesafe_d: (delik_mesafe || 0) / d, kolon_b1_d: kolon_b1 / d,
+  };
+  for (const [k, v] of Object.entries(olcum)) {
+    const [lo, hi] = GECERLILIK[k];
+    if (!(lo <= v && v <= hi)) {
+      const [loS, hiS] = GECERLILIK_ETIKET[k];
+      uyari.push(`GECERLILIK ARALIGI DISI: ${k} = ${fixed(v, 3)} (aralik ${loS}-${hiS})`);
+    }
+  }
+
+  let v_flex_oran = null;
+  if (pyTruthy(V_flex_kN)) {
+    v_flex_oran = V / V_flex_kN;
+    if (v_flex_oran > 0.9) uyari.push(`EGILME SINIRLI: V_tahmin/V_flex = ${fixed(v_flex_oran, 3)} > 0.90. ` +
+      "Bu kesitte EGILME yonetiyor olabilir; zimbalama tahmini " +
+      "belirleyici DEGILDIR (kalibrasyon setinde bu numuneler yoktu).");
+  } else uyari.push("V_flex verilmedi: egilme sinirinin yonetip yonetmedigi KONTROL " +
+    "EDILEMEDI (Kural 8). Tasarimda egilme kapasitesi ayrica kontrol edilmelidir.");
+
+  return {
+    V_tahmin_kN: V,
+    V_d_kN: V_d,
+    V_d_guclendirilmemis_kN: V_d_un,
+    ara: {
+      u_tam_mm: u_tam, u_red_mm, u_red, T1_ec2_kN: T1, lambda: lam,
+      lambda_x_T1_kN: T1_lam, f_delik: fd, k_g: kg, k_g_0: kg_0,
+      eta_op_g: eta_g, k_g_durum: kg_durum, kanit_duzeyi: kanit,
+      sinif, gamma_R: pyTruthy(g_yontem) ? g_str : g_un,
+      gamma_R_guclendirilmemis: g_un, gamma_g: pyTruthy(g_yontem) ? GAMMA_G : null,
+      k_g_tasarim: kg_tasarim, basabas_esigi: esik, net_kazanc_yuzde: net,
+      v_flex_oran, r_s_mm: null, d_g_mm: null,
+    },
+    uyarilar: uyari,
+    girdi: {
+      d, fc, ro, fy, t, B, kolon_b1, kolon_b2, delik_b1, delik_b2,
+      delik_sayisi: n_delik, delik_dizilim, delik_mesafe, delik_sekli,
+      kolon_konum, kolon_kesiti, yukleme, eksantriklik, moment_M_V,
+      kayma_donatisi, V_flex_kN,
+    },
+    model: {
+      kademe1: KADEME1, f_delik: `1 - ${c_fdelik}*sqrt(1-u_red)`, lambda: lam,
+      veri_surumu: VERI_SURUMU, k_g_kaynagi: "FAZ 7 (K13/K14/K16)",
+      gamma_kaynagi: "FAZ 8 / K21",
+    },
+  };
+}
+
+
+
+/* Numeric sources are byte-for-byte copies of files under csv/. */
+const RAW_CSV_BASE64 = {"T7b_gecerlilik_araligi.csv": "77u/IyB2M19mcm96ZW4gKHNoYSA5ZGYyMzY2MDE3ZmY3MjFkKSDCtyBLYWRlbWUxID0gRUMyIDIwMDQgwrcgbGFtYmRhID0gMS4xNTQ0IMK3IGZfZGVsaWsgYyA9IDAuNSDCtyB1cmV0aW06IHNyYy9hZGltN190YWJsb2xhcmlfeWVuaWxlLnB5CiMgS2Fwc2FtOiBJQyBrb2xvbiArIE1FUktFWkkgeXVrbGVtZSArIGtheW1hIGRvbmF0aXNpeiArIERJS0RPUlRHRU4ga29sb24uCnBhcmFtZXRyZSxiaXJpbSxuLG1pbixtYWtzLG9ydGFuY2EsJTUsJTk1DQpkLG1tLDgwLDU0LjAsMjAwLjAsOTUuMCw1NC4wLDIwMC4wDQpmYyxNUGEsODAsMTkuNiw0My45OCwyOS43MSwyMC4xNzYsNDIuMzE5DQpybywlLDgwLDAuMzksMS41NzEsMC45MDcsMC4zOSwxLjU3MQ0KdV9yZWQsLSw4MCwwLjE2NiwxLjAsMC44NDQsMC40OTcsMS4wDQptZXNhZmVfZCwtLDgwLDAuMCw1LjMzMywwLjAsMC4wLDUuMzMzDQpkZWxpa19tYWtzX2QsLSw4MCwwLjAsNy4zNjgsMS42MTMsMC4wLDUuMjYzDQprb2xvbl9iMV9kLC0sODAsMS4wLDIuNzc4LDEuNjY3LDEuMCwyLjc3OA0KZGVsaWtfYWxhbl9vcmFuaSwtLDgwLDAuMCw1LjE3NCwwLjE2NSwwLjAsMS4zMg0KVl9kZW5leSxrTiw4MCwzOC44OSwxMDUxLjAsMTkwLjMsNDkuMDg5LDgzMS42DQo=", "faz7_adim2_f_delik_kg.csv": "77u/c2V0LGRpemlsaW0sbixuX3lvbnRlbSxmX2RlbGlrX2tnLHN0ZCxHQTk1X2FsdCxHQTk1X3VzdCxtaW4sbWFrcw0KIkdFVlNFSyAoSzExLCBiaXJpbmNpbCkiLGJpdGlzaWssMiwyLDEuMjM4MSwwLjA4MjIsMS4xNzk5LDEuMjk2MywxLjE4LDEuMjk2DQoiR0VWU0VLIChLMTEsIGJpcmluY2lsKSIsY2FwcmF6LDUsMywwLjkxNzMsMC4wNjg0LDAuODYzMiwwLjk1NzQsMC44NDgsMS4wMTENCiJHRVZTRUsgKEsxMSwgYmlyaW5jaWwpIixwYXJhbGVsLDksMywwLjk3NjQsMC4wODU2LDAuOTIwNCwxLjAzNzYsMC44ODUsMS4xNTINCktBVEksYml0aXNpaywxLDEsMS4yOTYzLCwsLDEuMjk2LDEuMjk2DQpLQVRJLGNhcHJheiwzLDMsMC44NzE0LDAuMDI4OCwwLjg0NzYsMC45MDM0LDAuODQ4LDAuOTAzDQpLQVRJLHBhcmFsZWwsOSwzLDAuOTc2NCwwLjA4NTYsMC45MjA0LDEuMDM3NiwwLjg4NSwxLjE1Mg0KVFVNVSxiaXRpc2lrLDksMywxLjI3MSwwLjA2MjQsMS4yMzg0LDEuMzA5NiwxLjE4LDEuMzgNClRVTVUsY2FwcmF6LDksMywwLjkxMjQsMC4wNTgsMC44OTE4LDAuOTM5NSwwLjg0OCwxLjAxMQ0KVFVNVSxwYXJhbGVsLDksMywwLjk3NjQsMC4wODU2LDAuOTIwNCwxLjAzNzYsMC44ODUsMS4xNTINCg==", "faz7_adim2_kg_temel.csv": "77u/eW9udGVtLGthZGVtZSxzZXQsbl9jaWZ0LG5fbGFiLGtfZ190ZW1lbCxzdGQsR0E5NV9hbHQsR0E5NV91c3QsZnJha3RpbF81JSxtaW4sbWFrcw0KQ0ZSUCxBLCJHRVZTRUsgKEsxMSwgYmlyaW5jaWwpIiw1LDIsMS40NjI4LDAuMTUyMywxLjIwOTIsMS41MjYyLDEuMjU4NCwxLjIwOSwxLjYwOA0KQ0ZSUCxBLFRVTVUsMTYsMywxLjM0MjIsMC4xNjI1LDEuMjYzNiwxLjUyNjIsMS4xNDQ2LDEuMTIsMS42MDgNCkZlcm5hbmRleiAoZWdpayBjdWJ1ayksaWxnaWxpIHlvbnRlbSwiR0VWU0VLIChLMTEsIGJpcmluY2lsKSIsOCwxLDEuMzg1OSwwLjIxOSwsLDEuMTYzOSwxLjE2MSwxLjY5Mw0KRmVybmFuZGV6IChlZ2lrIGN1YnVrKSxpbGdpbGkgeW9udGVtLFRVTVUsMTEsMSwxLjI0NTQsMC4zMDI2LCwsMC44NjY0LDAuODU0LDEuNjkzDQpUUk0sQiwiR0VWU0VLIChLMTEsIGJpcmluY2lsKSIsNCwxLDEuNTgyNywwLjA5ODIsLCwxLjQ5MywxLjQ4NCwxLjcxNQ0KVFJNLEIsVFVNVSw0LDEsMS41ODI3LDAuMDk4MiwsLDEuNDkzLDEuNDg0LDEuNzE1DQpzYXBsYW1hLEEsIkdFVlNFSyAoSzExLCBiaXJpbmNpbCkiLDEwLDMsMS4zNzgsMC4yMzY1LDEuMjAyNiwxLjYzNjQsMS4xNTMxLDEuMTUzLDEuNzczDQpzYXBsYW1hLEEsVFVNVSwxMywzLDEuMzczOCwwLjIwOTQsMS4yMDI2LDEuNjM2NCwxLjE1MzIsMS4xNTMsMS43NzMNCg==", "faz8_abak_tablosu.csv": "77u/c2luaWYsZ2FtbWFfUl9ndWNsLGRpemlsaW0seW9udGVtLHVfcmVkLGV0YV9vcCxWX2RfZ3VjbGVuZGlyaWxtZW1pcyxWX2RfZ3VjbGVuZGlyaWxtaXMsZG9sdV9zZXZpeWV5ZV91bGFzdGlfbWksS0FOSVQNClJDMSAozrI9My4zKSwxLjk1LGNvcm5lcixDRlJQLDAuMywwLjU4MTcsMC4zMzI0LDAuMzI4OCxoYXlpcixBDQpSQzEgKM6yPTMuMyksMS45NSxjb3JuZXIsQ0ZSUCwwLjUsMC42NDY0LDAuMzY5NCwwLjM2NTQsaGF5aXIsQQ0KUkMxICjOsj0zLjMpLDEuOTUsY29ybmVyLENGUlAsMC43LDAuNzI2MSwwLjQxNDksMC40MTA0LGhheWlyLEENClJDMSAozrI9My4zKSwxLjk1LGNvcm5lcixDRlJQLDAuOSwwLjg0MTksMC40ODExLDAuNDc1OCxoYXlpcixBDQpSQzEgKM6yPTMuMyksMS45NSxjb3JuZXIsc2hlYXIgc3R1ZHMsMC4zLDAuNTgxNywwLjMzMjQsMC4zMzY1LGhheWlyLEENClJDMSAozrI9My4zKSwxLjk1LGNvcm5lcixzaGVhciBzdHVkcywwLjUsMC42NDY0LDAuMzY5NCwwLjM3NCxoYXlpcixBDQpSQzEgKM6yPTMuMyksMS45NSxjb3JuZXIsc2hlYXIgc3R1ZHMsMC43LDAuNzI2MSwwLjQxNDksMC40MjAxLGhheWlyLEENClJDMSAozrI9My4zKSwxLjk1LGNvcm5lcixzaGVhciBzdHVkcywwLjksMC44NDE5LDAuNDgxMSwwLjQ4NyxoYXlpcixBDQpSQzEgKM6yPTMuMyksMS45NSxjb3JuZXIsVFJNLDAuMywwLjU4MTcsMC4zMzI0LDAuMzg3NyxoYXlpcixCKg0KUkMxICjOsj0zLjMpLDEuOTUsY29ybmVyLFRSTSwwLjUsMC42NDY0LDAuMzY5NCwwLjQzMDgsaGF5aXIsQioNClJDMSAozrI9My4zKSwxLjk1LGNvcm5lcixUUk0sMC43LDAuNzI2MSwwLjQxNDksMC40ODQsaGF5aXIsQioNClJDMSAozrI9My4zKSwxLjk1LGNvcm5lcixUUk0sMC45LDAuODQxOSwwLjQ4MTEsMC41NjExLGhheWlyLEIqDQpSQzEgKM6yPTMuMyksMS45NSxmYWNlLWNlbnRyZWQsQ0ZSUCwwLjMsMC41ODE3LDAuMzMyNCwwLjM1MTgsaGF5aXIsQQ0KUkMxICjOsj0zLjMpLDEuOTUsZmFjZS1jZW50cmVkLENGUlAsMC41LDAuNjQ2NCwwLjM2OTQsMC4zOTEsaGF5aXIsQQ0KUkMxICjOsj0zLjMpLDEuOTUsZmFjZS1jZW50cmVkLENGUlAsMC43LDAuNzI2MSwwLjQxNDksMC40MzkyLGhheWlyLEENClJDMSAozrI9My4zKSwxLjk1LGZhY2UtY2VudHJlZCxDRlJQLDAuOSwwLjg0MTksMC40ODExLDAuNTA5MixoYXlpcixBDQpSQzEgKM6yPTMuMyksMS45NSxmYWNlLWNlbnRyZWQsc2hlYXIgc3R1ZHMsMC4zLDAuNTgxNywwLjMzMjQsMC4zNjAxLGhheWlyLEENClJDMSAozrI9My4zKSwxLjk1LGZhY2UtY2VudHJlZCxzaGVhciBzdHVkcywwLjUsMC42NDY0LDAuMzY5NCwwLjQwMDIsaGF5aXIsQQ0KUkMxICjOsj0zLjMpLDEuOTUsZmFjZS1jZW50cmVkLHNoZWFyIHN0dWRzLDAuNywwLjcyNjEsMC40MTQ5LDAuNDQ5NixoYXlpcixBDQpSQzEgKM6yPTMuMyksMS45NSxmYWNlLWNlbnRyZWQsc2hlYXIgc3R1ZHMsMC45LDAuODQxOSwwLjQ4MTEsMC41MjEyLGhheWlyLEENClJDMSAozrI9My4zKSwxLjk1LGZhY2UtY2VudHJlZCxUUk0sMC4zLDAuNTgxNywwLjMzMjQsMC40MTQ5LGhheWlyLEIqDQpSQzEgKM6yPTMuMyksMS45NSxmYWNlLWNlbnRyZWQsVFJNLDAuNSwwLjY0NjQsMC4zNjk0LDAuNDYxMSxoYXlpcixCKg0KUkMxICjOsj0zLjMpLDEuOTUsZmFjZS1jZW50cmVkLFRSTSwwLjcsMC43MjYxLDAuNDE0OSwwLjUxNzksaGF5aXIsQioNClJDMSAozrI9My4zKSwxLjk1LGZhY2UtY2VudHJlZCxUUk0sMC45LDAuODQxOSwwLjQ4MTEsMC42MDA1LEVWRVQsQioNClJDMSAozrI9My4zKSwxLjk1LEwtYXJyYW5nZW1lbnQsQ0ZSUCwwLjMsMC41ODE3LDAuMzMyNCwwLjQ1OCxoYXlpcixCKg0KUkMxICjOsj0zLjMpLDEuOTUsTC1hcnJhbmdlbWVudCxDRlJQLDAuNSwwLjY0NjQsMC4zNjk0LDAuNTA5LGhheWlyLEIqDQpSQzEgKM6yPTMuMyksMS45NSxMLWFycmFuZ2VtZW50LENGUlAsMC43LDAuNzI2MSwwLjQxNDksMC41NzE3LEVWRVQsQioNClJDMSAozrI9My4zKSwxLjk1LEwtYXJyYW5nZW1lbnQsQ0ZSUCwwLjksMC44NDE5LDAuNDgxMSwwLjY2MjksRVZFVCxCKg0KUkMxICjOsj0zLjMpLDEuOTUsTC1hcnJhbmdlbWVudCxzaGVhciBzdHVkcywwLjMsMC41ODE3LDAuMzMyNCwwLjQ2ODgsaGF5aXIsQioNClJDMSAozrI9My4zKSwxLjk1LEwtYXJyYW5nZW1lbnQsc2hlYXIgc3R1ZHMsMC41LDAuNjQ2NCwwLjM2OTQsMC41MjEsaGF5aXIsQioNClJDMSAozrI9My4zKSwxLjk1LEwtYXJyYW5nZW1lbnQsc2hlYXIgc3R1ZHMsMC43LDAuNzI2MSwwLjQxNDksMC41ODUyLEVWRVQsQioNClJDMSAozrI9My4zKSwxLjk1LEwtYXJyYW5nZW1lbnQsc2hlYXIgc3R1ZHMsMC45LDAuODQxOSwwLjQ4MTEsMC42Nzg1LEVWRVQsQioNClJDMSAozrI9My4zKSwxLjk1LEwtYXJyYW5nZW1lbnQsVFJNLDAuMywwLjU4MTcsMC4zMzI0LDAuNTQsaGF5aXIsQioNClJDMSAozrI9My4zKSwxLjk1LEwtYXJyYW5nZW1lbnQsVFJNLDAuNSwwLjY0NjQsMC4zNjk0LDAuNjAwMixFVkVULEIqDQpSQzEgKM6yPTMuMyksMS45NSxMLWFycmFuZ2VtZW50LFRSTSwwLjcsMC43MjYxLDAuNDE0OSwwLjY3NDIsRVZFVCxCKg0KUkMxICjOsj0zLjMpLDEuOTUsTC1hcnJhbmdlbWVudCxUUk0sMC45LDAuODQxOSwwLjQ4MTEsMC43ODE2LEVWRVQsQioNClJDMiAozrI9My44KSwyLjE1LGNvcm5lcixDRlJQLDAuMywwLjU4MTcsMC4zMTQ0LDAuMjk4MixoYXlpcixBDQpSQzIgKM6yPTMuOCksMi4xNSxjb3JuZXIsQ0ZSUCwwLjUsMC42NDY0LDAuMzQ5NCwwLjMzMTQsaGF5aXIsQQ0KUkMyICjOsj0zLjgpLDIuMTUsY29ybmVyLENGUlAsMC43LDAuNzI2MSwwLjM5MjUsMC4zNzIyLGhheWlyLEENClJDMiAozrI9My44KSwyLjE1LGNvcm5lcixDRlJQLDAuOSwwLjg0MTksMC40NTUxLDAuNDMxNixoYXlpcixBDQpSQzIgKM6yPTMuOCksMi4xNSxjb3JuZXIsc2hlYXIgc3R1ZHMsMC4zLDAuNTgxNywwLjMxNDQsMC4zMDUyLGhheWlyLEENClJDMiAozrI9My44KSwyLjE1LGNvcm5lcixzaGVhciBzdHVkcywwLjUsMC42NDY0LDAuMzQ5NCwwLjMzOTIsaGF5aXIsQQ0KUkMyICjOsj0zLjgpLDIuMTUsY29ybmVyLHNoZWFyIHN0dWRzLDAuNywwLjcyNjEsMC4zOTI1LDAuMzgxLGhheWlyLEENClJDMiAozrI9My44KSwyLjE1LGNvcm5lcixzaGVhciBzdHVkcywwLjksMC44NDE5LDAuNDU1MSwwLjQ0MTcsaGF5aXIsQQ0KUkMyICjOsj0zLjgpLDIuMTUsY29ybmVyLFRSTSwwLjMsMC41ODE3LDAuMzE0NCwwLjM1MTYsaGF5aXIsQioNClJDMiAozrI9My44KSwyLjE1LGNvcm5lcixUUk0sMC41LDAuNjQ2NCwwLjM0OTQsMC4zOTA4LGhheWlyLEIqDQpSQzIgKM6yPTMuOCksMi4xNSxjb3JuZXIsVFJNLDAuNywwLjcyNjEsMC4zOTI1LDAuNDM4OSxoYXlpcixCKg0KUkMyICjOsj0zLjgpLDIuMTUsY29ybmVyLFRSTSwwLjksMC44NDE5LDAuNDU1MSwwLjUwODksaGF5aXIsQioNClJDMiAozrI9My44KSwyLjE1LGZhY2UtY2VudHJlZCxDRlJQLDAuMywwLjU4MTcsMC4zMTQ0LDAuMzE5MSxoYXlpcixBDQpSQzIgKM6yPTMuOCksMi4xNSxmYWNlLWNlbnRyZWQsQ0ZSUCwwLjUsMC42NDY0LDAuMzQ5NCwwLjM1NDYsaGF5aXIsQQ0KUkMyICjOsj0zLjgpLDIuMTUsZmFjZS1jZW50cmVkLENGUlAsMC43LDAuNzI2MSwwLjM5MjUsMC4zOTg0LGhheWlyLEENClJDMiAozrI9My44KSwyLjE1LGZhY2UtY2VudHJlZCxDRlJQLDAuOSwwLjg0MTksMC40NTUxLDAuNDYxOSxoYXlpcixBDQpSQzIgKM6yPTMuOCksMi4xNSxmYWNlLWNlbnRyZWQsc2hlYXIgc3R1ZHMsMC4zLDAuNTgxNywwLjMxNDQsMC4zMjY2LGhheWlyLEENClJDMiAozrI9My44KSwyLjE1LGZhY2UtY2VudHJlZCxzaGVhciBzdHVkcywwLjUsMC42NDY0LDAuMzQ5NCwwLjM2MyxoYXlpcixBDQpSQzIgKM6yPTMuOCksMi4xNSxmYWNlLWNlbnRyZWQsc2hlYXIgc3R1ZHMsMC43LDAuNzI2MSwwLjM5MjUsMC40MDc3LGhheWlyLEENClJDMiAozrI9My44KSwyLjE1LGZhY2UtY2VudHJlZCxzaGVhciBzdHVkcywwLjksMC44NDE5LDAuNDU1MSwwLjQ3MjcsaGF5aXIsQQ0KUkMyICjOsj0zLjgpLDIuMTUsZmFjZS1jZW50cmVkLFRSTSwwLjMsMC41ODE3LDAuMzE0NCwwLjM3NjMsaGF5aXIsQioNClJDMiAozrI9My44KSwyLjE1LGZhY2UtY2VudHJlZCxUUk0sMC41LDAuNjQ2NCwwLjM0OTQsMC40MTgyLGhheWlyLEIqDQpSQzIgKM6yPTMuOCksMi4xNSxmYWNlLWNlbnRyZWQsVFJNLDAuNywwLjcyNjEsMC4zOTI1LDAuNDY5NyxoYXlpcixCKg0KUkMyICjOsj0zLjgpLDIuMTUsZmFjZS1jZW50cmVkLFRSTSwwLjksMC44NDE5LDAuNDU1MSwwLjU0NDYsRVZFVCxCKg0KUkMyICjOsj0zLjgpLDIuMTUsTC1hcnJhbmdlbWVudCxDRlJQLDAuMywwLjU4MTcsMC4zMTQ0LDAuNDE1NCxoYXlpcixCKg0KUkMyICjOsj0zLjgpLDIuMTUsTC1hcnJhbmdlbWVudCxDRlJQLDAuNSwwLjY0NjQsMC4zNDk0LDAuNDYxNixoYXlpcixCKg0KUkMyICjOsj0zLjgpLDIuMTUsTC1hcnJhbmdlbWVudCxDRlJQLDAuNywwLjcyNjEsMC4zOTI1LDAuNTE4NSxoYXlpcixCKg0KUkMyICjOsj0zLjgpLDIuMTUsTC1hcnJhbmdlbWVudCxDRlJQLDAuOSwwLjg0MTksMC40NTUxLDAuNjAxMixFVkVULEIqDQpSQzIgKM6yPTMuOCksMi4xNSxMLWFycmFuZ2VtZW50LHNoZWFyIHN0dWRzLDAuMywwLjU4MTcsMC4zMTQ0LDAuNDI1MixoYXlpcixCKg0KUkMyICjOsj0zLjgpLDIuMTUsTC1hcnJhbmdlbWVudCxzaGVhciBzdHVkcywwLjUsMC42NDY0LDAuMzQ5NCwwLjQ3MjUsaGF5aXIsQioNClJDMiAozrI9My44KSwyLjE1LEwtYXJyYW5nZW1lbnQsc2hlYXIgc3R1ZHMsMC43LDAuNzI2MSwwLjM5MjUsMC41MzA4LGhheWlyLEIqDQpSQzIgKM6yPTMuOCksMi4xNSxMLWFycmFuZ2VtZW50LHNoZWFyIHN0dWRzLDAuOSwwLjg0MTksMC40NTUxLDAuNjE1NCxFVkVULEIqDQpSQzIgKM6yPTMuOCksMi4xNSxMLWFycmFuZ2VtZW50LFRSTSwwLjMsMC41ODE3LDAuMzE0NCwwLjQ4OTgsaGF5aXIsQioNClJDMiAozrI9My44KSwyLjE1LEwtYXJyYW5nZW1lbnQsVFJNLDAuNSwwLjY0NjQsMC4zNDk0LDAuNTQ0NCxFVkVULEIqDQpSQzIgKM6yPTMuOCksMi4xNSxMLWFycmFuZ2VtZW50LFRSTSwwLjcsMC43MjYxLDAuMzkyNSwwLjYxMTUsRVZFVCxCKg0KUkMyICjOsj0zLjgpLDIuMTUsTC1hcnJhbmdlbWVudCxUUk0sMC45LDAuODQxOSwwLjQ1NTEsMC43MDg5LEVWRVQsQioNClJDMyAozrI9NC4zKSwyLjM1LGNvcm5lcixDRlJQLDAuMywwLjU4MTcsMC4yOTA4LDAuMjcyOCxoYXlpcixBDQpSQzMgKM6yPTQuMyksMi4zNSxjb3JuZXIsQ0ZSUCwwLjUsMC42NDY0LDAuMzIzMiwwLjMwMzIsaGF5aXIsQQ0KUkMzICjOsj00LjMpLDIuMzUsY29ybmVyLENGUlAsMC43LDAuNzI2MSwwLjM2MzEsMC4zNDA2LGhheWlyLEENClJDMyAozrI9NC4zKSwyLjM1LGNvcm5lcixDRlJQLDAuOSwwLjg0MTksMC40MjA5LDAuMzk0OCxoYXlpcixBDQpSQzMgKM6yPTQuMyksMi4zNSxjb3JuZXIsc2hlYXIgc3R1ZHMsMC4zLDAuNTgxNywwLjI5MDgsMC4yNzkyLGhheWlyLEENClJDMyAozrI9NC4zKSwyLjM1LGNvcm5lcixzaGVhciBzdHVkcywwLjUsMC42NDY0LDAuMzIzMiwwLjMxMDMsaGF5aXIsQQ0KUkMzICjOsj00LjMpLDIuMzUsY29ybmVyLHNoZWFyIHN0dWRzLDAuNywwLjcyNjEsMC4zNjMxLDAuMzQ4NixoYXlpcixBDQpSQzMgKM6yPTQuMyksMi4zNSxjb3JuZXIsc2hlYXIgc3R1ZHMsMC45LDAuODQxOSwwLjQyMDksMC40MDQxLGhheWlyLEENClJDMyAozrI9NC4zKSwyLjM1LGNvcm5lcixUUk0sMC4zLDAuNTgxNywwLjI5MDgsMC4zMjE3LGhheWlyLEIqDQpSQzMgKM6yPTQuMyksMi4zNSxjb3JuZXIsVFJNLDAuNSwwLjY0NjQsMC4zMjMyLDAuMzU3NSxoYXlpcixCKg0KUkMzICjOsj00LjMpLDIuMzUsY29ybmVyLFRSTSwwLjcsMC43MjYxLDAuMzYzMSwwLjQwMTYsaGF5aXIsQioNClJDMyAozrI9NC4zKSwyLjM1LGNvcm5lcixUUk0sMC45LDAuODQxOSwwLjQyMDksMC40NjU2LGhheWlyLEIqDQpSQzMgKM6yPTQuMyksMi4zNSxmYWNlLWNlbnRyZWQsQ0ZSUCwwLjMsMC41ODE3LDAuMjkwOCwwLjI5MTksaGF5aXIsQQ0KUkMzICjOsj00LjMpLDIuMzUsZmFjZS1jZW50cmVkLENGUlAsMC41LDAuNjQ2NCwwLjMyMzIsMC4zMjQ1LGhheWlyLEENClJDMyAozrI9NC4zKSwyLjM1LGZhY2UtY2VudHJlZCxDRlJQLDAuNywwLjcyNjEsMC4zNjMxLDAuMzY0NSxoYXlpcixBDQpSQzMgKM6yPTQuMyksMi4zNSxmYWNlLWNlbnRyZWQsQ0ZSUCwwLjksMC44NDE5LDAuNDIwOSwwLjQyMjUsaGF5aXIsQQ0KUkMzICjOsj00LjMpLDIuMzUsZmFjZS1jZW50cmVkLHNoZWFyIHN0dWRzLDAuMywwLjU4MTcsMC4yOTA4LDAuMjk4OCxoYXlpcixBDQpSQzMgKM6yPTQuMyksMi4zNSxmYWNlLWNlbnRyZWQsc2hlYXIgc3R1ZHMsMC41LDAuNjQ2NCwwLjMyMzIsMC4zMzIxLGhheWlyLEENClJDMyAozrI9NC4zKSwyLjM1LGZhY2UtY2VudHJlZCxzaGVhciBzdHVkcywwLjcsMC43MjYxLDAuMzYzMSwwLjM3MyxoYXlpcixBDQpSQzMgKM6yPTQuMyksMi4zNSxmYWNlLWNlbnRyZWQsc2hlYXIgc3R1ZHMsMC45LDAuODQxOSwwLjQyMDksMC40MzI1LGhheWlyLEENClJDMyAozrI9NC4zKSwyLjM1LGZhY2UtY2VudHJlZCxUUk0sMC4zLDAuNTgxNywwLjI5MDgsMC4zNDQzLGhheWlyLEIqDQpSQzMgKM6yPTQuMyksMi4zNSxmYWNlLWNlbnRyZWQsVFJNLDAuNSwwLjY0NjQsMC4zMjMyLDAuMzgyNixoYXlpcixCKg0KUkMzICjOsj00LjMpLDIuMzUsZmFjZS1jZW50cmVkLFRSTSwwLjcsMC43MjYxLDAuMzYzMSwwLjQyOTgsaGF5aXIsQioNClJDMyAozrI9NC4zKSwyLjM1LGZhY2UtY2VudHJlZCxUUk0sMC45LDAuODQxOSwwLjQyMDksMC40OTgzLGhheWlyLEIqDQpSQzMgKM6yPTQuMyksMi4zNSxMLWFycmFuZ2VtZW50LENGUlAsMC4zLDAuNTgxNywwLjI5MDgsMC4zOCxoYXlpcixCKg0KUkMzICjOsj00LjMpLDIuMzUsTC1hcnJhbmdlbWVudCxDRlJQLDAuNSwwLjY0NjQsMC4zMjMyLDAuNDIyMyxoYXlpcixCKg0KUkMzICjOsj00LjMpLDIuMzUsTC1hcnJhbmdlbWVudCxDRlJQLDAuNywwLjcyNjEsMC4zNjMxLDAuNDc0NCxoYXlpcixCKg0KUkMzICjOsj00LjMpLDIuMzUsTC1hcnJhbmdlbWVudCxDRlJQLDAuOSwwLjg0MTksMC40MjA5LDAuNTUsRVZFVCxCKg0KUkMzICjOsj00LjMpLDIuMzUsTC1hcnJhbmdlbWVudCxzaGVhciBzdHVkcywwLjMsMC41ODE3LDAuMjkwOCwwLjM4OSxoYXlpcixCKg0KUkMzICjOsj00LjMpLDIuMzUsTC1hcnJhbmdlbWVudCxzaGVhciBzdHVkcywwLjUsMC42NDY0LDAuMzIzMiwwLjQzMjMsaGF5aXIsQioNClJDMyAozrI9NC4zKSwyLjM1LEwtYXJyYW5nZW1lbnQsc2hlYXIgc3R1ZHMsMC43LDAuNzI2MSwwLjM2MzEsMC40ODU2LGhheWlyLEIqDQpSQzMgKM6yPTQuMyksMi4zNSxMLWFycmFuZ2VtZW50LHNoZWFyIHN0dWRzLDAuOSwwLjg0MTksMC40MjA5LDAuNTYzLEVWRVQsQioNClJDMyAozrI9NC4zKSwyLjM1LEwtYXJyYW5nZW1lbnQsVFJNLDAuMywwLjU4MTcsMC4yOTA4LDAuNDQ4MSxoYXlpcixCKg0KUkMzICjOsj00LjMpLDIuMzUsTC1hcnJhbmdlbWVudCxUUk0sMC41LDAuNjQ2NCwwLjMyMzIsMC40OTgsaGF5aXIsQioNClJDMyAozrI9NC4zKSwyLjM1LEwtYXJyYW5nZW1lbnQsVFJNLDAuNywwLjcyNjEsMC4zNjMxLDAuNTU5NCxFVkVULEIqDQpSQzMgKM6yPTQuMyksMi4zNSxMLWFycmFuZ2VtZW50LFRSTSwwLjksMC44NDE5LDAuNDIwOSwwLjY0ODYsRVZFVCxCKg0K", "faz8_basabas_esigi.csv": "77u/c2luaWYsZXNpayxlc2lrX3l1dmFybGFtYXNpeixkaXppbGltLHlvbnRlbSxrX2dfdGFzYXJpbSxuZXRfa2F6YW5jXyUsbmV0X2themFuY195dXZhcmxhbWFzaXpfJSxLQVpBTkRJUklZT1JfTVUsS0FOSVQNClJDMSAozrI9My4zKSwxLjExNDMsMS4xMzMyLGNhcHJheixDRlJQLDEuMTAyMiwtMS4xLC0yLjcsSEFZSVIsQQ0KUkMxICjOsj0zLjMpLDEuMTE0MywxLjEzMzIsY2FwcmF6LHNhcGxhbWEsMS4xMjgxLDEuMiwtMC40LEVWRVQsQQ0KUkMxICjOsj0zLjMpLDEuMTE0MywxLjEzMzIsY2FwcmF6LFRSTSwxLjI5OTYsMTYuNiwxNC43LEVWRVQsQg0KUkMxICjOsj0zLjMpLDEuMTE0MywxLjEzMzIscGFyYWxlbCxDRlJQLDEuMTc5NSw1LjksNC4xLEVWRVQsQQ0KUkMxICjOsj0zLjMpLDEuMTE0MywxLjEzMzIscGFyYWxlbCxzYXBsYW1hLDEuMjA3Miw4LjMsNi41LEVWRVQsQQ0KUkMxICjOsj0zLjMpLDEuMTE0MywxLjEzMzIscGFyYWxlbCxUUk0sMS4zOTA4LDI0LjgsMjIuNyxFVkVULEINClJDMSAozrI9My4zKSwxLjExNDMsMS4xMzMyLGJpdGlzaWssQ0ZSUCwxLjUzNTMsMzcuOCwzNS41LEVWRVQsQg0KUkMxICjOsj0zLjMpLDEuMTE0MywxLjEzMzIsYml0aXNpayxzYXBsYW1hLDEuNTcxNSw0MS4wLDM4LjcsRVZFVCxCDQpSQzEgKM6yPTMuMyksMS4xMTQzLDEuMTMzMixiaXRpc2lrLFRSTSwxLjgxMDUsNjIuNSw1OS44LEVWRVQsQg0KUkMyICjOsj0zLjgpLDEuMTYyMiwxLjE1MDQsY2FwcmF6LENGUlAsMS4xMDIyLC01LjIsLTQuMixIQVlJUixBDQpSQzIgKM6yPTMuOCksMS4xNjIyLDEuMTUwNCxjYXByYXosc2FwbGFtYSwxLjEyODEsLTIuOSwtMS45LEhBWUlSLEENClJDMiAozrI9My44KSwxLjE2MjIsMS4xNTA0LGNhcHJheixUUk0sMS4yOTk2LDExLjgsMTMuMCxFVkVULEINClJDMiAozrI9My44KSwxLjE2MjIsMS4xNTA0LHBhcmFsZWwsQ0ZSUCwxLjE3OTUsMS41LDIuNSxFVkVULEENClJDMiAozrI9My44KSwxLjE2MjIsMS4xNTA0LHBhcmFsZWwsc2FwbGFtYSwxLjIwNzIsMy45LDQuOSxFVkVULEENClJDMiAozrI9My44KSwxLjE2MjIsMS4xNTA0LHBhcmFsZWwsVFJNLDEuMzkwOCwxOS43LDIwLjksRVZFVCxCDQpSQzIgKM6yPTMuOCksMS4xNjIyLDEuMTUwNCxiaXRpc2lrLENGUlAsMS41MzUzLDMyLjEsMzMuNSxFVkVULEINClJDMiAozrI9My44KSwxLjE2MjIsMS4xNTA0LGJpdGlzaWssc2FwbGFtYSwxLjU3MTUsMzUuMiwzNi42LEVWRVQsQg0KUkMyICjOsj0zLjgpLDEuMTYyMiwxLjE1MDQsYml0aXNpayxUUk0sMS44MTA1LDU1LjgsNTcuNCxFVkVULEINClJDMyAozrI9NC4zKSwxLjE3NSwxLjE2ODMsY2FwcmF6LENGUlAsMS4xMDIyLC02LjIsLTUuNyxIQVlJUixBDQpSQzMgKM6yPTQuMyksMS4xNzUsMS4xNjgzLGNhcHJheixzYXBsYW1hLDEuMTI4MSwtNC4wLC0zLjQsSEFZSVIsQQ0KUkMzICjOsj00LjMpLDEuMTc1LDEuMTY4MyxjYXByYXosVFJNLDEuMjk5NiwxMC42LDExLjIsRVZFVCxCDQpSQzMgKM6yPTQuMyksMS4xNzUsMS4xNjgzLHBhcmFsZWwsQ0ZSUCwxLjE3OTUsMC40LDEuMCxFVkVULEENClJDMyAozrI9NC4zKSwxLjE3NSwxLjE2ODMscGFyYWxlbCxzYXBsYW1hLDEuMjA3MiwyLjcsMy4zLEVWRVQsQQ0KUkMzICjOsj00LjMpLDEuMTc1LDEuMTY4MyxwYXJhbGVsLFRSTSwxLjM5MDgsMTguNCwxOS4xLEVWRVQsQg0KUkMzICjOsj00LjMpLDEuMTc1LDEuMTY4MyxiaXRpc2lrLENGUlAsMS41MzUzLDMwLjcsMzEuNCxFVkVULEINClJDMyAozrI9NC4zKSwxLjE3NSwxLjE2ODMsYml0aXNpayxzYXBsYW1hLDEuNTcxNSwzMy43LDM0LjUsRVZFVCxCDQpSQzMgKM6yPTQuMyksMS4xNzUsMS4xNjgzLGJpdGlzaWssVFJNLDEuODEwNSw1NC4xLDU1LjAsRVZFVCxCDQo=", "faz8_onerilen_gamma.csv": "77u/YmV0YSxzaW5pZixnYW1tYV9tb2RlbCxnYW1tYV9tb2RlbCttYWx6ZW1lLEdBOTUsT05FUklMRU5fZ3VjbGVuZGlyaWxtZW1pcyxnYW1tYV9ndWNsZW5kaXJpbG1pc19oYW0sT05FUklMRU5fZ3VjbGVuZGlyaWxtaXMNCjMuMyxSQzEsMS42LDEuNzEyLCJbMS40OCwgMS44OV0iLDEuNzUsMS45NCwxLjk1DQozLjgsUkMyLDEuNzExLDEuODQ5LCJbMS41OCwgMi4wNV0iLDEuODUsMi4xMjcsMi4xNQ0KNC4zLFJDMywxLjgzLDEuOTk3LCJbMS42OSwgMi4yNF0iLDIuMCwyLjMzMywyLjM1DQo="};
+const decode64 = (s) => new TextDecoder("utf-8").decode(Uint8Array.from(atob(s), c=>c.charCodeAt(0)));
+function parseCsv(text){const rows=[];let r=[],f="",q=false;for(let i=0;i<text.length;i++){const c=text[i];if(q){if(c==='"'&&text[i+1]==='"'){f+='"';i++}else if(c==='"')q=false;else f+=c}else if(c==='"')q=true;else if(c===','){r.push(f);f=""}else if(c==='\n'){r.push(f.replace(/\r$/, ""));if(r.some(v=>v!==""))rows.push(r);r=[];f=""}else f+=c}if(f||r.length){r.push(f);rows.push(r)}const comments=rows.filter(x=>String(x[0]).startsWith("#")).map(x=>x.join(","));const clean=rows.filter(x=>!String(x[0]).startsWith("#"));const h=clean.shift().map(x=>x.replace(/^\uFEFF/,""));return{comments,rows:clean.map(x=>Object.fromEntries(h.map((k,i)=>[k,x[i]??""])))}}
+const TABLES=Object.fromEntries(Object.entries(RAW_CSV_BASE64).map(([k,v])=>[k,parseCsv(decode64(v))]));
+const kgRows=TABLES["faz7_adim2_kg_temel.csv"].rows.filter(r=>r.set==="TUMU");const methodKey={CFRP:"CFRP",saplama:"saplama",TRM:"TRM","Fernandez (egik cubuk)":"fernandez"};
+const etaRows=TABLES["faz7_adim2_f_delik_kg.csv"].rows.filter(r=>r.set.toUpperCase().startsWith("TUM"));
+const SOURCE_DATA=Object.freeze({tables:TABLES,gamma:Object.fromEntries(TABLES["faz8_onerilen_gamma.csv"].rows.map(r=>[r.sinif,{beta:+r.beta,ci:r.GA95,un:+r.ONERILEN_guclendirilmemis,str:+r.ONERILEN_guclendirilmis,raw:+r["gamma_model+malzeme"]}])),kg0:Object.fromEntries(kgRows.map(r=>[methodKey[r.yontem],{value:+r.k_g_temel,n:+r.n_cift,labs:+r.n_lab,lo:r.GA95_alt===""?null:+r.GA95_alt,hi:r.GA95_ust===""?null:+r.GA95_ust}])),eta:Object.fromEntries(etaRows.map(r=>[r.dizilim,{value:+r.f_delik_kg,n:+r.n,lo:+r.GA95_alt,hi:+r.GA95_ust}])),validity:Object.fromEntries(TABLES["T7b_gecerlilik_araligi.csv"].rows.map(r=>[r.parametre,{unit:r.birim,n:+r.n,min:+r.min,max:+r.maks,median:+r.ortanca,p5:+r["%5"],p95:+r["%95"]}])),breakEven:TABLES["faz8_basabas_esigi.csv"].rows,abacus:TABLES["faz8_abak_tablosu.csv"].rows,model:{kappaCal:LAMBDA,c:F_DELIK_C,gammaG:GAMMA_G}});
+
+const COLORS=["#1f4e79","#c00000","#2e7d32","#7b1fa2","#e65100","#00695c","#5d4037"],DASH=["","8 5","8 3 2 3","2 4","6 2 2 2","10 4","2 2"];
+const $=id=>document.getElementById(id),num=id=>{const v=$(id).value;return v===""?null:+v};
+function inputObject(){let n=+$("openingCount").value,layout=$("layout").value;if(n===0)layout="bosluksuz";if(layout==="bitisik"&&n!==2){n=2;$("openingCount").value="2"}return{d:num("d"),fc:num("fc"),ro:num("ro"),kolon_b1:num("c1"),kolon_b2:num("c2"),t:num("t"),B:num("B"),delik_b1:n?num("aop"):null,delik_b2:n?num("bop"):null,delik_sayisi:n,delik_dizilim:layout,delik_mesafe:n?num("distance"):0,delik_sekli:$("shape").value,kolon_konum:$("columnLocation").value,kolon_kesiti:$("columnSection").value,yukleme:$("loading").value,eksantriklik:num("ecc")||0,moment_M_V:num("moment")||0,kayma_donatisi:$("shear").checked,V_flex_kN:num("vflex"),g_yontem:$("method").value||null,sinif:$("class").value};}
+const fmt=(v,d=3)=>v==null?"—":Number(v).toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d});
+function translateWarning(w){if(w.startsWith("KAPSAM DISI: kolon_konum"))return["scope","Out of scope — column location","The model was calibrated only for interior columns; edge and corner columns were absent from the calibration set."];if(w.startsWith("KAPSAM DISI: kolon_kesiti"))return["scope","Out of scope — column section","The geometry engine assumes a rectangular column. L-, circular- and T-shaped sections produce an invalid control perimeter."];if(w.startsWith("KAPSAM DISI: yukleme"))return["scope","Out of scope — loading","The model was calibrated only for concentric loading."];if(w.startsWith("KAPSAM DISI: eksantriklik"))return["scope","Out of scope — eccentricity","Eccentric loading was not included in the calibration set."];if(w.startsWith("KAPSAM DISI: dengesiz"))return["scope","Out of scope — unbalanced moment","The model is not calibrated for unbalanced moment transfer."];if(w.startsWith("KAPSAM DISI: kayma"))return["scope","Out of scope — shear reinforcement","Shear-reinforced slabs were excluded; EC2 shear-reinforcement rules are not applied."];if(w.startsWith("EC2 2004 tabaninda"))return["info","Compatibility inputs ignored","The supplied r_s, d_g and/or f_y values are not used by the EC2 2004 base model."];if(w.startsWith("AYRI KATEGORI"))return["caution","Separate strengthening category","Inclined bonded steel bars are not grouped with mechanical shear studs and are reported separately."];if(w.startsWith("KANIT DUZEYI B — TRM"))return["caution","Evidence level B — TRM","Baseline TRM efficiency comes from one laboratory (4 pairs). Limited external comparison indicates the model overestimates k_g by about 32% (mean observed/predicted = 0.759, n = 2, single source); direction is known, magnitude remains uncertain."];if(w.startsWith("KANIT DUZEYI B — BITISIK"))return["caution","Evidence level B — L-arrangement","Opening interaction was calibrated on 9 pairs from one laboratory. No independent two-opening validation exists; this is also the most favourable layout factor."];if(w.startsWith("BASA-BAS")){const net=(w.match(/net ([+-]?\d+\.\d)%/)||[])[1]||"—";return["break-even","Below the break-even threshold",`Strengthening lowers the design resistance in this configuration (net ${net}%). Added k_g uncertainty exceeds the mean gain. Mean gain and design gain are not the same.`]}if(w.startsWith("GECERLILIK")){const m=w.match(/: ([^ ]+) = ([^ ]+)/);const names={d_mm:"effective depth d",fc_MPa:"concrete strength f_c",ro_yuzde:"reinforcement ratio ρ_l",u_red:"perimeter ratio κ_u",delik_maks_d:"opening size/d",delik_mesafe_d:"opening distance/d",kolon_b1_d:"column dimension/d"};return["caution","Outside the calibration range",`${names[m?.[1]]||m?.[1]} = ${m?.[2]} is outside the supplied validity envelope.`]}if(w.startsWith("EGILME"))return["caution","Flexure may govern","The predicted punching resistance exceeds 90% of V_flex. Punching resistance may not govern this section."];if(w.startsWith("V_flex"))return["info","Flexural check unavailable","V_flex was not supplied. Flexural capacity must be checked separately."];return["caution","Model warning","The model returned an unclassified warning. Consult the technical report."]}
+function translateError(w){if(w.startsWith("sinif"))return"Unknown consequence class. Select RC1, RC2 or RC3.";if(w.startsWith("g_yontem"))return"Unknown strengthening method.";if(w.startsWith("k_g icin"))return"The selected opening layout cannot be mapped to a calibrated strengthening layout. Choose face-centred, corner or L-arrangement explicitly.";if(w.startsWith("delik_dizilim"))return"The opening geometry layout could not be resolved.";return"The calculation could not be completed. Check all inputs."}
+const MML=x=>`<math xmlns="http://www.w3.org/1998/Math/MathML">${x}</math>`;
+const SUB=(a,b)=>`<msub><mi>${a}</mi><mi>${b}</mi></msub>`;
+function step(sym,desc,value){return`<tr><td class="sym">${sym}</td><td class="desc">${desc}</td><td class="val">${value}</td></tr>`}
+function tier(t){return`<tr class="tier"><td colspan="3">${t}</td></tr>`}
+function out(sym,desc,value){return`<tr class="out"><td class="sym">${sym}</td><td class="desc">${desc}</td><td class="val">${value}</td></tr>`}
+function mmlLabel(x,y,mml,w,h,anchor){return`<foreignObject x="${x}" y="${y}" width="${w}" height="${h}"><div xmlns="http://www.w3.org/1999/xhtml" style="font:13px 'Times New Roman',serif;text-align:${anchor||"center"}"><math xmlns="http://www.w3.org/1998/Math/MathML">${mml}</math></div></foreignObject>`}
+function svgChart(result,input){const W=760,H=430,p={l:70,r:20,t:44,b:64},x=u=>p.l+(u-.15)/.85*(W-p.l-p.r),y=v=>H-p.b-v/1.05*(H-p.t-p.b),g=SOURCE_DATA.gamma[input.sinif],eta=u=>1-SOURCE_DATA.model.c*Math.sqrt(Math.max(0,1-u)),method=input.g_yontem,layout=input.delik_dizilim,kg=method?SOURCE_DATA.model.gammaG*SOURCE_DATA.kg0[YONTEM_ALIAS[method.toLowerCase()]].value*SOURCE_DATA.eta[layout].value:null;
+const fUn=u=>eta(u)/g.un,fSt=u=>eta(u)*kg/g.str,LAY={paralel:"face-centred",capraz:"corner",bitisik:"L-arrangement",bosluksuz:"solid"},MET={CFRP:"CFRP",saplama:"shear studs",TRM:"TRM",fernandez:"inclined bars"};
+let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Opening efficiency and design levels">`;
+const scen=method?`${MET[YONTEM_ALIAS[method.toLowerCase()]]} &#183; ${LAY[layout]||layout} &#183; ${input.sinif}`:`unstrengthened &#183; ${LAY[layout]||layout} &#183; ${input.sinif}`;
+s+=`<text x="${p.l}" y="18" style="font-size:13px;font-weight:700" fill="#17202a">Design level vs. opening ratio</text><text x="${p.l}" y="34" style="font-size:12px" fill="#5b6672">${scen}</text>`;
+for(let i=0;i<=5;i++){const v=i/5;s+=`<line class="gridline" x1="${p.l}" y1="${y(v)}" x2="${W-p.r}" y2="${y(v)}"/><text class="axis-text" x="${p.l-9}" y="${y(v)+4}" text-anchor="end">${v.toFixed(1)}</text>`}
+for(const u of [.2,.4,.6,.8,1])s+=`<line class="gridline" x1="${x(u)}" y1="${p.t}" x2="${x(u)}" y2="${H-p.b}"/><text class="axis-text" x="${x(u)}" y="${H-p.b+19}" text-anchor="middle">${u.toFixed(1)}</text>`;
+const path=fn=>{let d="";for(let i=0;i<=170;i++){const u=.15+i*.85/170;d+=`${i?"L":"M"}${x(u).toFixed(2)},${y(fn(u)).toFixed(2)}`}return d};
+if(method){let band="";for(let i=0;i<=170;i++){const u=.15+i*.85/170;band+=`${i?"L":"M"}${x(u).toFixed(2)},${y(fUn(u)).toFixed(2)}`}for(let i=170;i>=0;i--){const u=.15+i*.85/170;band+=`L${x(u).toFixed(2)},${y(fSt(u)).toFixed(2)}`}
+ const gain=kg>g.str/g.un;s+=`<defs><pattern id="hg" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse"><line x1="0" y1="0" x2="0" y2="6" stroke="${gain?COLORS[2]:COLORS[1]}" stroke-width="2.2" opacity=".38"/></pattern></defs><path d="${band}Z" fill="url(#hg)" stroke="none"/>`}
+s+=`<path d="${path(eta)}" fill="none" stroke="#9c9891" stroke-width="1.7" stroke-dasharray="3 3"/><path d="${path(fUn)}" fill="none" stroke="${COLORS[0]}" stroke-width="2.2"/>`;
+if(method)s+=`<path d="${path(fSt)}" fill="none" stroke="${COLORS[{CFRP:1,saplama:2,TRM:3,fernandez:4}[YONTEM_ALIAS[method.toLowerCase()]]]||COLORS[4]}" stroke-width="2.2" stroke-dasharray="9 5"/>`;
+s+=`<line x1="${p.l}" y1="${y(1/g.un)}" x2="${W-p.r}" y2="${y(1/g.un)}" stroke="#111" stroke-width="1" stroke-dasharray="7 4"/><text class="axis-text" x="${W-p.r-4}" y="${y(1/g.un)-6}" text-anchor="end">solid-slab design level</text>`;
+const u=result.ara.u_red;s+=`<circle cx="${x(u)}" cy="${y(eta(u))}" r="4.5" fill="#8a8f95" stroke="white"/><circle cx="${x(u)}" cy="${y(fUn(u))}" r="5.5" fill="${COLORS[0]}" stroke="white" stroke-width="1.5"/>`;
+if(method){s+=`<rect x="${x(u)-5.5}" y="${y(fSt(u))-5.5}" width="11" height="11" fill="${COLORS[1]}" stroke="white" stroke-width="1.5"/>`;
+ const net=result.ara.net_kazanc_yuzde,dy=Math.abs(y(fSt(u))-y(fUn(u))),lab=net>=0?`+${net.toFixed(1)}% design gain`:`${net.toFixed(1)}% &#8212; no design-level gain`;
+ const yy=(y(fSt(u))+y(fUn(u)))/2, ax=Math.min(x(u)+16,W-p.r-210);
+ s+=`<line x1="${x(u)}" y1="${y(fUn(u))}" x2="${x(u)}" y2="${y(fSt(u))}" stroke="${net>=0?COLORS[2]:COLORS[1]}" stroke-width="2.5"/>`;
+ s+=`<text x="${ax}" y="${yy+4}" style="font-size:12.5px;font-weight:700" fill="${net>=0?COLORS[2]:COLORS[1]}">${lab}</text>`;
+ if(dy<9)s+=`<text x="${ax}" y="${yy+19}" style="font-size:11.5px" fill="#5b6672">curves nearly coincide at this &#954;&#8341;</text>`}
+s+=`<line class="tick" x1="${p.l}" y1="${p.t}" x2="${p.l}" y2="${H-p.b}"/><line class="tick" x1="${p.l}" y1="${H-p.b}" x2="${W-p.r}" y2="${H-p.b}"/>`;
+s+=mmlLabel((W+p.l-p.r)/2-95,H-30,`<mrow><msub><mi>&#954;</mi><mi>u</mi></msub><mo>=</mo><msub><mi>u</mi><mrow><mn>1</mn><mo>,</mo><mi>red</mi></mrow></msub><mo>/</mo><msub><mi>u</mi><mn>1</mn></msub></mrow>`,190,26);
+s+=`<g transform="translate(6 ${(H+p.t-p.b)/2+95}) rotate(-90)">`+mmlLabel(0,0,`<mrow><msub><mi>&#951;</mi><mi>op</mi></msub><mtext>&#160;and&#160;</mtext><msub><mi>V</mi><mi>d</mi></msub><mo>/</mo><msub><mi>V</mi><mrow><mi>R</mi><mo>,</mo><mi>EC2</mi></mrow></msub></mrow>`,190,26)+`</g>`;
+s+=`<g class="legend"><text x="${p.l+8}" y="${p.t+14}" fill="#8a8f95">&#183;&#183;&#183; &#951;&#8348;&#8346;</text><text x="${p.l+92}" y="${p.t+14}" fill="${COLORS[0]}">&#8212; unstrengthened</text>${method?`<text x="${p.l+236}" y="${p.t+14}" fill="${COLORS[1]}">-- strengthened</text><text x="${p.l+236}" y="${p.t+29}" fill="#5b6672">shaded: difference</text>`:""}</g></svg>`;return s}
+function scopeChart(result,input){const W=430,H=400,p={l:62,r:18,t:24,b:55},ku=SOURCE_DATA.validity.u_red,dd=SOURCE_DATA.validity.d,x=v=>p.l+(v-ku.min)/(ku.max-ku.min)*(W-p.l-p.r),y=v=>H-p.b-(v-dd.min)/(dd.max-dd.min)*(H-p.t-p.b),inside=result.ara.u_red>=ku.min&&result.ara.u_red<=ku.max&&input.d>=dd.min&&input.d<=dd.max;return`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Calibration scope map"><rect x="${p.l}" y="${p.t}" width="${W-p.l-p.r}" height="${H-p.t-p.b}" fill="#edf4fa" stroke="${COLORS[0]}" stroke-width="1.2"/><rect x="${x(ku.p5)}" y="${y(dd.p95)}" width="${x(ku.p95)-x(ku.p5)}" height="${y(dd.p5)-y(dd.p95)}" fill="#1f4e79" opacity=".12"/><line x1="${x(ku.median)-7}" y1="${y(dd.median)}" x2="${x(ku.median)+7}" y2="${y(dd.median)}" stroke="#555"/><line x1="${x(ku.median)}" y1="${y(dd.median)-7}" x2="${x(ku.median)}" y2="${y(dd.median)+7}" stroke="#555"/><circle cx="${Math.max(p.l,Math.min(W-p.r,x(result.ara.u_red)))}" cy="${Math.max(p.t,Math.min(H-p.b,y(input.d)))}" r="7" fill="${inside?COLORS[2]:COLORS[1]}" stroke="white" stroke-width="2"/><line class="tick" x1="${p.l}" y1="${p.t}" x2="${p.l}" y2="${H-p.b}"/><line class="tick" x1="${p.l}" y1="${H-p.b}" x2="${W-p.r}" y2="${H-p.b}"/><text class="axis-text" x="${p.l}" y="${H-p.b+18}">${ku.min}</text><text class="axis-text" x="${W-p.r}" y="${H-p.b+18}" text-anchor="end">${ku.max}</text><text class="axis-text" x="${p.l-8}" y="${p.t+4}" text-anchor="end">${dd.max}</text><text class="axis-text" x="${p.l-8}" y="${H-p.b+4}" text-anchor="end">${dd.min}</text><text class="axis-text" x="${(W+p.l-p.r)/2}" y="${H-12}" text-anchor="middle">κ_u = u₁,red / u₁</text><text class="axis-text" transform="translate(15 ${(H+p.t-p.b)/2}) rotate(-90)" text-anchor="middle">d (mm)</text><text class="axis-text" x="${p.l+8}" y="${p.t+18}">calibration envelope</text><text class="axis-text" x="${p.l+8}" y="${p.t+35}">shaded: 5–95% summary band</text><text class="axis-text" x="${p.l+8}" y="${H-p.b-10}" fill="${inside?COLORS[2]:COLORS[1]}">${inside?"● inside d–κ_u envelope":"● outside d–κ_u envelope"}</text></svg>`}
+function validateAbacus(){let max=0,bad=0;const mapLayout={corner:"capraz","face-centred":"paralel","L-arrangement":"bitisik"},mapMethod={CFRP:"CFRP","shear studs":"saplama",TRM:"TRM"},r4=x=>Math.round((x+Number.EPSILON)*1e4)/1e4;for(const r of SOURCE_DATA.abacus){const cls=r.sinif.slice(0,3),g=SOURCE_DATA.gamma[cls],u=+r.u_red,e=f_delik(u),kg=SOURCE_DATA.model.gammaG*SOURCE_DATA.kg0[mapMethod[r.yontem]].value*SOURCE_DATA.eta[mapLayout[r.dizilim]].value,vals=[[e,+r.eta_op],[e/g.un,+r.V_d_guclendirilmemis],[e*kg/g.str,+r.V_d_guclendirilmis]];for(const[a,b]of vals){const diff=Math.abs(r4(a)-b);max=Math.max(max,diff);if(diff>5e-5)bad++}}return{rows:SOURCE_DATA.abacus.length,bad,max}}
+function calculate(){const input=inputObject();$("error").classList.add("hidden");try{const r=hesapla(input),g=SOURCE_DATA.gamma[input.sinif],strength=!!input.g_yontem;$("vd").textContent=`${fmt(r.V_d_kN,1)} kN`;$("vdUn").textContent=`${fmt(r.V_d_guclendirilmemis_kN,1)} kN`;$("vmean").textContent=`${fmt(r.V_tahmin_kN,1)} kN`;$("vdNote").textContent=strength?"Indicative strengthened design value; k_g uncertainty is based on n=6.":"Research design value for an unstrengthened slab.";$("gammaLine").textContent=`Proposed γ_R = ${fmt(r.ara.gamma_R,2)} · target β = ${g.beta} · 95% CI for the unrounded model-plus-material factor ${g.ci} · calibration sample n = 80 specimens / 11 studies${strength?" · strengthened factor is indicative (k_g external comparison n = 6)":""}.`;const badge=r.ara.kanit_duzeyi?`<span class="badge badge-${r.ara.kanit_duzeyi.toLowerCase()}">Evidence ${r.ara.kanit_duzeyi}</span>`:"";let evidence="";if(r.ara.kanit_duzeyi==="B")evidence=input.g_yontem==="TRM"?"TRM: one-laboratory baseline; limited external evidence indicates overprediction.":"L-arrangement: no independent two-opening validation.";$("evidenceBox").innerHTML=(badge?`<div style="padding:11px 16px 0">${badge}</div>`:"")+(evidence?`<div class="evidence"><b>Evidence limitation</b><br>${evidence}</div>`:"");const a=r.ara;const u1=MML(SUB("u","1")),u1r=MML(`<msub><mi>u</mi><mrow><mn>1</mn><mo>,</mo><mi>red</mi></mrow></msub>`),ku=MML(SUB("&#954;","u")),VE=MML(`<msub><mi>V</mi><mrow><mi>R</mi><mo>,</mo><mi>EC2</mi></mrow></msub>`),kc=MML(SUB("&#954;","cal")),eo=MML(SUB("&#951;","op")),eog=MML(`<msub><mi>&#951;</mi><mrow><mi>op</mi><mo>,</mo><mi>g</mi></mrow></msub>`),kg0=MML(`<msub><mi>k</mi><mrow><mi>g</mi><mo>,</mo><mn>0</mn></mrow></msub>`),kg=MML(SUB("k","g")),gg=MML(SUB("&#947;","g")),gR=MML(SUB("&#947;","R")),Vd=MML(SUB("V","d"));
+let ch=tier("Tier 1 &mdash; code base, full control perimeter")+step(u1,"EC2 control perimeter at 2d",`${fmt(a.u_tam_mm,2)} mm`)+step(u1r,"reduced by the radial tangent rule",`${fmt(a.u_red_mm,2)} mm`)+step(ku,`${u1r} / ${u1}`,fmt(a.u_red,4))+step(VE,"EN 1992-1-1:2004, full perimeter",`${fmt(a.T1_ec2_kN,2)} kN`)+step(`${kc} ${VE}`,"calibration constant &times; base",`${fmt(a.lambda_x_T1_kN,2)} kN`)+tier("Tier 2 &mdash; opening factor, no fitted parameters")+step(eo,MML(`<mrow><mn>1</mn><mo>&#8722;</mo><mn>0.5</mn><msqrt><mrow><mn>1</mn><mo>&#8722;</mo>${SUB("&#954;","u")}</mrow></msqrt></mrow>`),fmt(a.f_delik,4));
+if(a.k_g_0!=null){ch+=tier("Tier 3 &mdash; strengthening recovery")+step(kg0,"method baseline (solid slabs)",fmt(a.k_g_0,4))+step(eog,"opening effect on strengthening efficiency",fmt(a.eta_op_g,4))+step(kg,`${kg0} &times; ${eog}`,fmt(a.k_g,4))+step(gg,"bias correction &mdash; not a safety margin",fmt(a.gamma_g,2));}
+ch+=tier("Design value")+step(gR,"proposed partial factor on resistance",fmt(a.gamma_R,2))+out(Vd,strength?`${kc} ${VE} ${eo} (${gg} ${kg}) / ${gR}`:`${kc} ${VE} ${eo} / ${gR}`,`${fmt(r.V_d_kN,2)} kN`)+(strength?step(MML(`<msub><mi>V</mi><mrow><mi>d</mi><mo>,</mo><mi>unstr</mi></mrow></msub>`),"same opening, no strengthening",`${fmt(r.V_d_guclendirilmemis_kN,2)} kN`):"");
+$("steps").innerHTML=ch;const ICO={scope:"&#9940;",caution:"&#9888;",info:"&#8505;","break-even":"&#8635;"},TAG={scope:"Out of scope",caution:"Caution",info:"Note","break-even":"Break-even"};
+const wcard=(c,t,m)=>`<div class="warn ${c==="break-even"?"breakeven":c}"><div class="ico" aria-hidden="true">${ICO[c]||"&#8505;"}</div><div><span class="tag">${TAG[c]||"Note"}</span><span class="ttl">${t}</span><span class="msg">${m}</span></div></div>`;
+let ws=r.uyarilar.map(w=>{const[c,t,m]=translateWarning(w);return wcard(c,t,m)});const extra=[];for(const[k,v]of Object.entries({d:input.d,fc:input.fc,ro:input.ro})){const q=SOURCE_DATA.validity[k];if(v<q.min||v>q.max)extra.push(wcard("caution","Outside the validity envelope",`${k} = ${v} is outside ${q.min}\u2013${q.max} ${q.unit}.`))}extra.push(wcard("info","Slab plan dimensions",`B = ${num("B")} mm and L = ${num("L")} mm are recorded for context but do not enter the EN 1992-1-1 resistance core.`));$("warnings").innerHTML=ws.concat(extra).join("");$("mainChart").innerHTML=svgChart(r,input);$("scopeChart").innerHTML=scopeChart(r,input);const av=validateAbacus();$("chartValidation").textContent=`Continuous equations checked against ${av.rows} supplied chart rows: ${av.bad===0?"all rounded table values matched":"mismatch detected"}; maximum rounded difference ${av.max}. Source: csv/faz8_abak_tablosu.csv.`;$("results").classList.remove("hidden");clearStale()}catch(e){$("results").classList.add("hidden");$("error").textContent=translateError(e.message);$("error").classList.remove("hidden");clearStale()}}
+function markStale(){if($("results").classList.contains("hidden"))return;$("results").classList.add("stale");$("staleBadge").classList.add("show")}
+function clearStale(){$("results").classList.remove("stale");$("staleBadge").classList.remove("show")}
+/* Select and checkbox controls recompute immediately. Numeric fields do NOT: recomputing on every keystroke makes the error panel flash while a number is half-typed. They instead mark the result stale, so a changed input can never be read together with a result that predates it — a scope warning that no longer applies is the most expensive kind of silence in this tool. */
+function init(){for(const id of ["openingCount","layout","method","class","shape","columnLocation","columnSection","loading","shear"])$(id).addEventListener("change",calculate);for(const el of document.querySelectorAll('#form input[type="number"]'))el.addEventListener("input",markStale);$("form").addEventListener("submit",e=>{e.preventDefault();calculate()});calculate()}
+globalThis.__WEB_TEST_API__={SOURCE_DATA,hesapla,validateAbacus};
+if(typeof document!=="undefined")init();
+</script>
+</body></html>

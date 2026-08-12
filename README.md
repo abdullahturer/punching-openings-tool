@@ -5,7 +5,7 @@ slab–column connections with openings adjacent to the column**, with and witho
 It implements, term by term, the closed-form design equation and the partial factors proposed in
 the accompanying paper.
 
-**[Open the calculator](https://ORGANISATION.github.io/REPOSITORY/)** ·
+**[Open the calculator]([https://abdullahturer.github.io/punching-openings-tool])** ·
 **Archived release + database: [10.5281/zenodo.21872724](https://doi.org/10.5281/zenodo.21872724)**
 
 > `ORGANISATION/REPOSITORY` is a placeholder and will be replaced when the repository address is

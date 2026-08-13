@@ -26,11 +26,31 @@ export const LAMBDA = 1.1544;
 export const F_DELIK_C = 0.5;
 export const KADEME1 = "EC2 2004 (EN 1992-1-1:2004, 6.4.4)";
 export const VERI_SURUMU = "database_v3_frozen.csv sha256[:16]=9df2366017ff721d";
+// ‼️ TEK KAYNAK: src/reference_model.py::ARAC_SURUMU ile BIREBIR ayni olmali.
+// Once baslik seridi "v2.1", altbilgi "Tool version 2.0" diyordu (denetim T).
+export const ARAC_SURUMU = "2.1";
 
 export const KG0 = Object.freeze({ CFRP: 1.3422, saplama: 1.3738, TRM: 1.5827, fernandez: 1.2454 });
 export const ETA_OP_G = Object.freeze({ paralel: 0.9764, capraz: 0.9124, bitisik: 1.2710, bosluksuz: 1.0 });
 export const GAMMA_G = 0.90;
-export const GAMMA_R = Object.freeze({ RC1: [1.75, 1.95], RC2: [1.85, 2.15], RC3: [2.00, 2.35] });
+// Denetim O (2026-08-13): kanit isareti IKI BOYUTLU — yontem tabani | dizilim faktoru.
+// ‼️ BU BLOK BIR ARA IKI KEZ YAZILMISTI (denetim O duzenlemesinin kopyasi) ve
+//    `const` yeniden bildirimi TUM SCRIPT'I SyntaxError ile durduruyordu: arayuzde
+//    Calculate'e basildiginda HICBIR SEY olmuyordu. Statik testler gormedi cunku
+//    hicbiri bu dosyayi CALISTIRMIYORDU (node yok). 2026-08-13'te kaldirildi;
+//    `tests/test_web_yapisi.py` artik cift bildirimi statik olarak da yakaliyor.
+export const KANIT_YONTEM = Object.freeze({ CFRP: "A", saplama: "A", TRM: "B", fernandez: "B" });
+export const KANIT_DIZILIM = Object.freeze({ paralel: "A", capraz: "B", bitisik: "B", bosluksuz: "A" });
+export const KANIT_GEREKCE = Object.freeze({
+  CFRP: "16 cift / 3 laboratuvar", saplama: "13 cift / 3 laboratuvar",
+  TRM: "4 cift / 1 laboratuvar (bizim)", fernandez: "11 cift / 1 laboratuvar",
+  paralel: "9 ikiz cift + 6 bagimsiz karsilastirma noktasi",
+  capraz: "9 ikiz cift, bagimsiz karsilastirma noktasi YOK (K15)",
+  bitisik: "9 ikiz cift, bagimsiz nokta YAPISAL olarak yok (dis setin tamami tek delikli)",
+  bosluksuz: "delik yok",
+});
+// 2026-08-12 (audit A, fold-clean kappa validation): theta CoV 16.95 -> 17.47, gamma raised.
+export const GAMMA_R = Object.freeze({ RC1: [1.75, 2.00], RC2: [1.90, 2.20], RC3: [2.05, 2.40] });
 
 export const YONTEM_ALIAS = Object.freeze({
   cfrp: "CFRP", trm: "TRM", saplama: "saplama",
@@ -52,9 +72,12 @@ export const GECERLILIK = Object.freeze({
   delik_maks_d: [0.0, 7.37],
   delik_mesafe_d: [0.0, 5.33],
   kolon_b1_d: [1.00, 2.78],
+  kolon_b2_d: [1.00, 4.17],
+  kolon_en_boy: [1.00, 3.00],
   kolon_konum: "yalniz IC kolon",
   yukleme: "yalniz MERKEZI (eksantriklik/dengesiz moment YOK)",
   kayma_donatisi: "YOK (kayma donatili doseme kapsam disi)",
+  sigma_cp: "0 (ongermesiz; duzlem ici basinc YOK)",
   kolon_kesiti: "DIKDORTGEN (L/dairesel/T kesit kapsam DISI)",
 });
 
@@ -63,6 +86,8 @@ const GECERLILIK_ETIKET = Object.freeze({
   ro_yuzde: ["0.39", "1.571"], u_red: ["0.166", "1.0"],
   delik_maks_d: ["0.0", "7.37"], delik_mesafe_d: ["0.0", "5.33"],
   kolon_b1_d: ["1.0", "2.78"],
+  kolon_b2_d: ["1.0", "4.17"],
+  kolon_en_boy: ["1.0", "3.0"],
 });
 
 const TWO_PI = 2 * Math.PI;
@@ -290,7 +315,7 @@ export function hesapla({
   delik_b1 = null, delik_b2 = null, delik_sayisi = 0,
   delik_dizilim = "bosluksuz", delik_mesafe = 0.0, delik_sekli = "kare",
   kolon_konum = "ic", kolon_kesiti = "dikdortgen", yukleme = "merkezi",
-  eksantriklik = 0.0, moment_M_V = 0.0, kayma_donatisi = false, V_flex_kN = null,
+  eksantriklik = 0.0, moment_M_V = 0.0, kayma_donatisi = false, sigma_cp = 0.0, V_flex_kN = null,
   g_yontem = null, g_miktar = null, sinif = "RC2",
   fy = null, t = null, B = null, r_s = null, d_g = null,
   lam = LAMBDA, c_fdelik = F_DELIK_C,
@@ -313,7 +338,9 @@ export function hesapla({
   }
   if (pyTruthy(eksantriklik)) uyari.push(`KAPSAM DISI: eksantriklik = ${eksantriklik} mm. Eksantrik yukleme ` + "kalibrasyon setine GIRMEMISTIR (ayri tartisma konusu).");
   if (pyTruthy(moment_M_V)) uyari.push(`KAPSAM DISI: dengesiz moment M/V = ${moment_M_V}. Model dengesiz ` + "moment aktarimi icin kalibre EDILMEMISTIR.");
-  if (pyTruthy(kayma_donatisi)) uyari.push("KAPSAM DISI: kayma_donatisi = True. Kayma donatili doseme kalibrasyon " + "setine GIRMEMISTIR; EC2'nin kayma donatili kurallari uygulanmaz.");
+  if (pyTruthy(kayma_donatisi)) uyari.push("KAPSAM DISI: mevcut geleneksel zimbalama KAYMA DONATISI var. Kayma " + "donatili doseme kalibrasyon setine GIRMEMISTIR; EC2'nin kayma donatili " + "tasarim kurallari BURADA UYGULANMAZ. (Guclendirme sistemi olarak kayma " + "saplamasi secmek AYRI bir girdidir: g_yontem='saplama'.)");
+  // denetim C (2026-08-12): EC2 ifadesinin duzlem ici basinc terimi KAPSAM DISIDIR.
+  if (pyTruthy(sigma_cp)) uyari.push(`KAPSAM DISI: sigma_cp = ${sigma_cp} MPa. Kalibrasyon setinin TAMAMI ` + "ongermesiz ve kayda deger duzlem ici basinc yok (sigma_cp = 0); " + "EC2'nin duzlem ici basinc terimi bu modelde YER ALMAZ.");
 
   const kullanilmayan = [];
   if (r_s !== null && r_s !== undefined) kullanilmayan.push("r_s");
@@ -323,10 +350,21 @@ export function hesapla({
 
   const [, , u_tam] = kontrolCevresi(kolon_b1, kolon_b2, 2.0 * d, true);
   const n_delik = Math.trunc(pyTruthy(delik_sayisi) ? Number(delik_sayisi) : 0);
+  const daireselMi = ["dairesel", "circular", "daire"]
+    .includes(String(delik_sekli).trim().toLowerCase());
+  // Denetim I (2026-08-13): dairesel delik TEK CAP ile tanimlanir. Onceden b1 != b2
+  // girilebiliyor ve yaricap ikisinin ORTALAMASI aliniyordu — tanimli bir daire degil.
+  if (n_delik > 0 && daireselMi && delik_b2 !== null && delik_b2 !== undefined
+      && Math.abs(Number(delik_b1) - Number(delik_b2)) > 1e-9) {
+    throw new Error(`DAIRESEL delik TEK CAP ile tanimlanir: delik_b1 = delik_b2 olmali `
+      + `(verilen ${delik_b1} ve ${delik_b2}). Farkli iki boyut bir daire tanimlamaz; `
+      + `eliptik delik kalibrasyon kapsaminda DEGILDIR. Dikdortgen/eliptik bir `
+      + `acikligi 'dairesel' diye vermeyin — delik_sekli='dikdortgen' kullanin.`);
+  }
   let u_red_mm;
   if (n_delik > 0) {
     const delikler = yerlesim(delik_dizilim, delik_b1, delik_b2, n_delik, delik_mesafe,
-      kolon_b1, kolon_b2, String(delik_sekli).trim().toLowerCase() === "dairesel");
+      kolon_b1, kolon_b2, daireselMi);
     if (delikler === null) throw new Error(`delik_dizilim cozulemedi: ${pyRepr(delik_dizilim)}`);
     u_red_mm = azaltEc2(kolon_b1, kolon_b2, d, delikler).u_azaltilmis;
   } else u_red_mm = u_tam;
@@ -363,7 +401,15 @@ export function hesapla({
     kg_0 = KG0[yon];
     eta_g = ETA_OP_G[diz_anahtar];
     kg = kg_0 * eta_g;
-    kanit = kanitB(yon, diz_anahtar) ? "B" : "A";
+    const k_y = KANIT_YONTEM[yon], k_d = KANIT_DIZILIM[diz_anahtar];
+    kanit = `${k_y}|${k_d}`;
+    if (kanit.includes("B")) {
+      const zayif = [];
+      if (k_y === "B") zayif.push(`k_g,0(${yon}): ${KANIT_GEREKCE[yon]}`);
+      if (k_d === "B") zayif.push(`eta_op,g(${diz_anahtar}): ${KANIT_GEREKCE[diz_anahtar]}`);
+      uyari.push(`KANIT DUZEYI ${kanit} — ZAYIF HALKA: ${zayif.join(" ve ")}. `
+        + "Kademe B bilesen(ler)i bagimsiz olarak dogrulanmamistir.");
+    }
     kg_durum = `k_g = k_g,0(${yon}) x eta_op,g(${diz_anahtar}) = ${fixed(kg_0, 4)} x ` +
       `${fixed(eta_g, 4)} = ${fixed(kg, 4)} · KANIT DUZEYI ${kanit}`;
     if (yon === "fernandez") uyari.push("AYRI KATEGORI — 'fernandez' (egik yapistirilmis celik cubuk) " +
@@ -409,6 +455,8 @@ export function hesapla({
     d_mm: d, fc_MPa: fc, ro_yuzde: ro, u_red,
     delik_maks_d: n_delik ? Math.max(delik_b1 || 0, delik_b2 || delik_b1 || 0) / d : 0.0,
     delik_mesafe_d: (delik_mesafe || 0) / d, kolon_b1_d: kolon_b1 / d,
+    kolon_b2_d: kolon_b2 / d,
+    kolon_en_boy: Math.max(kolon_b1, kolon_b2) / Math.min(kolon_b1, kolon_b2),
   };
   for (const [k, v] of Object.entries(olcum)) {
     const [lo, hi] = GECERLILIK[k];
@@ -445,7 +493,7 @@ export function hesapla({
       d, fc, ro, fy, t, B, kolon_b1, kolon_b2, delik_b1, delik_b2,
       delik_sayisi: n_delik, delik_dizilim, delik_mesafe, delik_sekli,
       kolon_konum, kolon_kesiti, yukleme, eksantriklik, moment_M_V,
-      kayma_donatisi, V_flex_kN,
+      kayma_donatisi, sigma_cp, V_flex_kN,
     },
     model: {
       kademe1: KADEME1, f_delik: `1 - ${c_fdelik}*sqrt(1-u_red)`, lambda: lam,
